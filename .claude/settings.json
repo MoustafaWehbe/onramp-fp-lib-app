@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "respectGitignore": true,
+  "cleanupPeriodDays": 14,
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "openrouter",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_BASE_URL": "http://192.168.1.98:11434",
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70",
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
+    "BASH_DEFAULT_TIMEOUT_MS": "20000",
+    "BASH_MAX_TIMEOUT_MS": "120000",
+    "BASH_MAX_OUTPUT_LENGTH": "12000",
+    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe"
+  },
+  "includeGitInstructions": false,
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(git clone *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "WebFetch(domain:localhost)",
+      "Read(//c/Users/jhony/.claude/skills/agent-manager-skill/**)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3333)",
+      "Bash(node out/mcp-server/server.js localflow-builder C:\\\\DevHub\\\\Projects\\\\AI-ML\\\\localflow-builder)",
+      "Read(//c/Users/jhony/.claude/skills/**)",
+      "PowerShell(C:\\\\tools\\\\msys64\\\\usr\\\\bin\\\\bash.exe -c \"pacman -Syu --noconfirm tmux\")",
+      "PowerShell(C:\\\\tools\\\\msys64\\\\usr\\\\bin\\\\bash.exe -c \"which pacman\")"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./node_modules/**)",
+      "Read(./dist/**)",
+      "Read(./build/**)",
+      "Read(./coverage/**)",
+      "Read(./.next/**)",
+      "Read(./out/**)",
+      "Read(./.git/**)",
+      "Read(./packets/*.pcap)",
+      "Edit(./package-lock.json)",
+      "Edit(./pnpm-lock.yaml)",
+      "Edit(./yarn.lock)",
+      "Edit(./.env)",
+      "Edit(./.env.*)"
+    ],
+    "ask": [],
+    "defaultMode": "auto"
+  },
+  "model": "qwen3-coder:30b-128k",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',d).get('command',''))\" 2>/dev/null || true); case \"$CMD\" in *grep*|*rg\\ *|*ripgrep*|*find\\ *|*fd\\ *|*ack\\ *|*ag\\ *)   [ -f graphify-out/graph.json ] &&   echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"graphify: Knowledge graph exists. Read graphify-out/GRAPH_REPORT.md before searching raw files.\"}}'   || true ;; esac"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "accesslint@accesslint": true,
+    "browse@browserbase": true,
+    "proficiently@proficiently": true,
+    "superpowers@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "accesslint": {
+      "source": {
+        "source": "github",
+        "repo": "accesslint/claude-marketplace"
+      }
+    },
+    "browserbase": {
+      "source": {
+        "source": "github",
+        "repo": "browserbase/skills"
+      }
+    },
+    "proficiently": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/proficientlyjobs/proficiently-claude-skills.git"
+      }
+    }
+  },
+  "autoUpdatesChannel": "latest",
+  "tui": "fullscreen",
+  "editorMode": "normal",
+  "verbose": true,
+  "preferredNotifChannel": "auto",
+  "autoCompactEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "models": {
+    "fast": "qwen3.5:9b",
+    "coder": "llama3.1:latest",
+    "advanced_coder": "qwen3-coder:30b-128k",
+    "reasoning": "qwen3.6:35b",
+    "deep_reasoning": "gpt-oss:120b",
+    "security_analysis": "qwen3-next-80b:latest",
+    "vision": "qwen3-vl:32b"
+  },
+  "skipWorkflowUsageWarning": true
+}
