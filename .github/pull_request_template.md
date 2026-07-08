@@ -24,6 +24,10 @@ Closes #
 
 1.
 
+## Screenshots
+
+<!-- For visual changes, add before/after screenshots (or a short clip). Omit if not applicable. -->
+
 ## Checklist
 
 - [ ] Scope is a single, focused change (no unrelated edits)
