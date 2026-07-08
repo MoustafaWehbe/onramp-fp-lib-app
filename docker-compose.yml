@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     # pgvector/pgvector ships PostgreSQL 16 with the pgvector extension available.

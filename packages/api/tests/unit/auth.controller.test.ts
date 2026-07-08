@@ -83,8 +83,11 @@ describe("POST /api/auth/login", () => {
       .send({ email: "alice@example.com", password: "SecurePass1" });
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveProperty("accessToken");
-    expect(res.body.data).toHaveProperty("refreshToken");
+    // Tokens are delivered as httpOnly cookies, not in the response body.
+    expect(res.body.data.user.email).toBe("alice@example.com");
+    const cookies = (res.headers["set-cookie"] ?? []) as unknown as string[];
+    expect(cookies.some((c) => c.startsWith("accessToken="))).toBe(true);
+    expect(cookies.some((c) => c.startsWith("refreshToken="))).toBe(true);
   });
 
   it("returns 422 when body is missing", async () => {
