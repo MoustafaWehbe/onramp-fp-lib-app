@@ -109,6 +109,7 @@ model Book {
   title         String
   author        String
   genre         String?
+  coverImage    String?       @map("cover_image") // book cover URL
   status        ReadingStatus @default(WANT_TO_READ)
   openLibraryId String?       @map("open_library_id") // if added from Open Library
   createdAt     DateTime      @default(now()) @map("created_at")
