@@ -65,6 +65,7 @@ model User {
   bookEmbeddings   BookEmbedding[]
   tasteProfile     TasteProfile?
   discoveryReports DiscoveryReport[]
+  shelves          Shelf[]
 
   @@map("users")
 }
@@ -118,6 +119,7 @@ model Book {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   journalEntry JournalEntry?
   embedding    BookEmbedding?
+  shelves      Shelf[]
 
   // Dedup: primary match on openLibraryId (books added from Open Library),
   // fallback to (title, author) for manually-entered books. Postgres allows
@@ -126,6 +128,24 @@ model Book {
   @@unique([userId, title, author])
   @@index([userId, status])
   @@map("books")
+}
+
+/// A user-created named collection of books (many-to-many with Book).
+/// Complements Book.status (the reading lifecycle): a book can sit on any
+/// number of shelves. Cross-account shared shelves (joint view/write access)
+/// are designed in ARCHITECTURE.md but intentionally not in the schema yet.
+model Shelf {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books Book[]
+
+  @@unique([userId, name])
+  @@map("shelves")
 }
 
 /// A user's reflection on a finished book. Presence of one (with status
