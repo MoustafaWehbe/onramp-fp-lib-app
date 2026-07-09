@@ -122,4 +122,25 @@ describe("Auth endpoints (integration, real database)", () => {
       .set("Cookie", refreshCookie as string);
     expect(refresh.status).toBe(401);
   });
+
+  it("handles a concurrent duplicate registration as 409, not 500", async () => {
+    const racer = {
+      email: "race@example.com",
+      password: "SecurePass1",
+      name: "Race User",
+    };
+
+    // Fire two registrations at once. Both can pass the pre-check before either
+    // commits, so one wins the unique constraint (201) and the other must be
+    // mapped to 409 — never surface as an unhandled 500.
+    const [a, b] = await Promise.all([
+      request(app).post("/api/auth/register").send(racer),
+      request(app).post("/api/auth/register").send(racer),
+    ]);
+
+    expect([a.status, b.status].sort()).toEqual([201, 409]);
+    expect(
+      await prisma.user.count({ where: { email: racer.email } }),
+    ).toBe(1);
+  });
 });
