@@ -2,6 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@starter-kit/shared": ["../shared/dist/src/index.d.ts"],
+      "@starter-kit/shared/*": ["../shared/dist/*"]
+    }
   }
 }

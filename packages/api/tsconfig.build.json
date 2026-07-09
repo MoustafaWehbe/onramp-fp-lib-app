@@ -2,7 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@starter-kit/shared": ["../shared/dist/src/index.d.ts"],
+      "@starter-kit/shared/*": ["../shared/dist/*"]
+    }
   },
   "include": ["src/**/*", "app.ts", "server.ts"],
   "exclude": ["node_modules", "dist", "tests"]
