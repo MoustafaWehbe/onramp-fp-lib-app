@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
 import type { JwtPayload, TokenPair } from "./types";
 
 function getSecret(envKey: string, fallback: string): string {
@@ -18,7 +19,13 @@ export function signAccessToken(payload: JwtPayload): string {
 export function signRefreshToken(payload: Pick<JwtPayload, "userId">): string {
   const secret = getSecret("JWT_REFRESH_SECRET", "dev-refresh-secret");
   const expiresIn = process.env.JWT_REFRESH_EXPIRES_IN ?? "7d";
-  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
+  // A unique jti makes each refresh token distinct even when two are issued in
+  // the same second for the same user, so rotation never collides on the stored
+  // token_hash unique constraint.
+  return jwt.sign(payload, secret, {
+    expiresIn,
+    jwtid: randomUUID(),
+  } as jwt.SignOptions);
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
