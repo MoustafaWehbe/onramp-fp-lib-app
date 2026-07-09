@@ -1,0 +1,237 @@
+// Prisma schema for Folio.
+//
+// The final-project guide requires the schema to be "implemented in Prisma
+// (all core models, not just User)". This file replaces the Sequelize models
+// under packages/shared/db/models.
+//
+// AUTH models (User / Session / RefreshToken) mirror the existing tables created
+// by the original sequelize migration 20240101000000-create-auth-tables.js
+// exactly (same table/column names, types, nullability, defaults, cascades) so
+// behaviour is preserved.
+//
+// DOMAIN models below are a PROPOSAL derived from the Phase 6 prompt. They are
+// meant to be confirmed/adjusted by the author before migration — the guide
+// requires the schema to reflect the team's own understanding.
+//
+// pgvector: the two embedding-bearing columns (TasteProfile.embedding and
+// BookEmbedding.embedding) are intentionally NOT declared as Prisma fields yet.
+// nomic-embed-text's real vector dimension must be confirmed from a live API
+// response (Step 0) before sizing them; they will be added by a dedicated SQL
+// migration as `vector(<N>)` and queried via Prisma $queryRaw (cosine distance).
+// The `vector` extension itself is declared on the datasource so migrations
+// enable it reproducibly (docker/postgres/init.sql also enables it locally).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  admin
+  user
+}
+
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  FINISHED
+  ABANDONED
+}
+
+// ─── Auth (mirrors existing tables) ───────────────────────────────────────────
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String   @db.VarChar(255)
+  role          Role     @default(user)
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sessions         Session[]
+  refreshTokens    RefreshToken[]
+  books            Book[]
+  journalEntries   JournalEntry[]
+  bookEmbeddings   BookEmbedding[]
+  tasteProfile     TasteProfile?
+  discoveryReports DiscoveryReport[]
+  shelves          Shelf[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  userAgent String?  @map("user_agent") @db.Text
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ─── Domain (PROPOSAL — confirm before migrating) ─────────────────────────────
+
+/// A book in a user's personal library.
+model Book {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  title         String
+  author        String
+  genre         String?
+  coverImage    String?       @map("cover_image") // book cover URL
+  status        ReadingStatus @default(WANT_TO_READ)
+  openLibraryId String?       @map("open_library_id") // if added from Open Library
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry?
+  embedding    BookEmbedding?
+  shelves      Shelf[]
+
+  // Dedup: primary match on openLibraryId (books added from Open Library),
+  // fallback to (title, author) for manually-entered books. Postgres allows
+  // multiple NULL openLibraryId rows, so manual entries aren't blocked by it.
+  @@unique([userId, openLibraryId])
+  @@unique([userId, title, author])
+  @@index([userId, status])
+  @@map("books")
+}
+
+/// A user-created named collection of books (many-to-many with Book).
+/// Complements Book.status (the reading lifecycle): a book can sit on any
+/// number of shelves. Cross-account shared shelves (joint view/write access)
+/// are designed in ARCHITECTURE.md but intentionally not in the schema yet.
+model Shelf {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books Book[]
+
+  @@unique([userId, name])
+  @@map("shelves")
+}
+
+/// A user's reflection on a finished book. Presence of one (with status
+/// FINISHED) is what triggers the embedding job.
+model JournalEntry {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId         String   @unique @map("book_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  reflectionText String   @map("reflection_text") @db.Text
+  favoriteQuotes String[] @map("favorite_quotes")
+  rating         Int? // 1..5, weights the taste-profile vector average
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("journal_entries")
+}
+
+/// One stored embedding per book (genre+author+reflection+quotes).
+/// The `embedding vector(N)` column is added via SQL migration (see header note).
+model BookEmbedding {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId     String   @unique @map("book_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  sourceText String   @map("source_text") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  embedding Unsupported("vector(768)")? // nomic-embed-text dim, verified live (Step 0)
+
+  @@index([userId])
+  @@map("book_embeddings")
+}
+
+/// One rating-weighted taste vector + structured summary per user.
+/// The `embedding vector(N)` column is added via SQL migration (see header note).
+model TasteProfile {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  aggregatedData Json     @map("aggregated_data") // { topGenres, topAuthors, avgRating }
+  refreshedAt    DateTime @default(now()) @map("refreshed_at") // staleness check
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  embedding Unsupported("vector(768)")? // nomic-embed-text dim, verified live (Step 0)
+
+  @@map("taste_profiles")
+}
+
+/// A generated discovery report: 3 real Open Library recommendations + rationale.
+model DiscoveryReport {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  moodModifier String?  @map("mood_modifier") // optional mood text from the form
+  summary      String?  @db.Text // optional overall narrative
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items RecommendationItem[]
+
+  @@index([userId, createdAt])
+  @@map("discovery_reports")
+}
+
+/// One of exactly 3 recommendations in a report. title/author are copied
+/// verbatim from a real Open Library candidate (server-verified in Step 6).
+model RecommendationItem {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reportId   String   @map("report_id") @db.Uuid
+  rank       Int // 1..3
+  title      String
+  author     String
+  rationale  String   @db.Text // "The Why" — must cite the user's own books/entries
+  similarity Float? // cosine similarity from the retrieval step
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  report DiscoveryReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("recommendation_items")
+}

@@ -1,8 +1,9 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector/pgvector ships PostgreSQL 16 with the pgvector extension available.
+    # The plain postgres:16-alpine image does NOT include pgvector, which the
+    # project requires. init.sql enables the extension on first volume init.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -12,6 +13,7 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
       interval: 10s
