@@ -44,9 +44,9 @@ describe("core route scaffolding — auth/role wiring", () => {
   });
 
   it("an authenticated user reaches an owner-scoped stub (501)", async () => {
-    // /api/analytics is still a stub (Books is now implemented with real handlers).
+    // /api/contributors stays a stub (Books is implemented; Analytics is next).
     const res = await request(app)
-      .get("/api/analytics")
+      .get("/api/contributors")
       .set("Cookie", cookie("user"));
     expect(res.status).toBe(501);
   });
