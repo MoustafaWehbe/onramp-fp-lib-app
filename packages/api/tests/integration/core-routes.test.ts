@@ -1,10 +1,5 @@
 import request from "supertest";
-import {
-  signAccessToken,
-  emailQueue,
-  embeddingsQueue,
-  getRedisConnection,
-} from "@starter-kit/shared";
+import { signAccessToken } from "@starter-kit/shared";
 import { app } from "../../app";
 
 // Verifies the scaffolded routes are wired with the correct auth/role middleware.
@@ -21,11 +16,8 @@ function cookie(role: "user" | "admin"): string {
   return `accessToken=${token}`;
 }
 
-afterAll(async () => {
-  await emailQueue.close();
-  await embeddingsQueue.close();
-  await getRedisConnection().quit();
-});
+// BullMQ/Redis handles opened via the app barrel are closed centrally in
+// tests/teardown.ts (setupFilesAfterEnv).
 
 describe("core route scaffolding — auth/role wiring", () => {
   const ownerRoutes = [

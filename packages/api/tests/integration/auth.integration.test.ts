@@ -1,12 +1,7 @@
 import request from "supertest";
 import type { Response } from "supertest";
 import { app } from "../../app";
-import {
-  getPrisma,
-  emailQueue,
-  embeddingsQueue,
-  getRedisConnection,
-} from "@starter-kit/shared";
+import { getPrisma } from "@starter-kit/shared";
 
 // These tests exercise the real auth endpoints against the real (test) Postgres
 // configured in tests/setup.ts (starter_kit_test) — nothing is mocked. They are
@@ -40,10 +35,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await resetDb();
   await prisma.$disconnect();
-  // Release the BullMQ/Redis handles opened when the app barrel is imported.
-  await emailQueue.close();
-  await embeddingsQueue.close();
-  await getRedisConnection().quit();
+  // BullMQ/Redis handles opened via the app barrel are closed centrally in
+  // tests/teardown.ts (setupFilesAfterEnv).
 });
 
 describe("Auth endpoints (integration, real database)", () => {
