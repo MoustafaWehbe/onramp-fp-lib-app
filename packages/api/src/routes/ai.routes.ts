@@ -9,7 +9,7 @@ router.use(authenticate);
 
 router.post("/taste-profile/refresh", aiController.refreshTasteProfile);
 router.get("/taste-profile", notImplemented);
-router.post("/discovery-report", notImplemented);
+router.post("/discovery-report", aiController.discoveryReport);
 router.get("/discovery-reports", notImplemented);
 router.get("/discovery-report/:id", notImplemented);
 
