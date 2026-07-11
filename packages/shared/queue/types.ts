@@ -17,7 +17,9 @@ export interface EmailJobData {
 export interface EmbeddingsJobData {
   entityId: string;
   entityType: string;
-  text: string;
+  // Optional: the "book" path builds its source text from the DB (see embed-book);
+  // only the generic path uses this.
+  text?: string;
 }
 
 export type JobData = EmailJobData | EmbeddingsJobData;
