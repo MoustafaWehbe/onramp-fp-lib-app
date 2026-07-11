@@ -1,21 +1,51 @@
-import { getAIClient } from "./client";
+import { ollamaPost } from "./client";
 
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const client = getAIClient();
-  const response = await client.embeddings.create({
-    model: "text-embedding-3-small",
-    input: text,
-  });
-  return response.data[0]?.embedding ?? [];
+/** Embedding model name from env (must be pulled on the Ollama host). */
+function embeddingModel(): string {
+  const model = process.env.OLLAMA_EMBEDDING_MODEL;
+  if (!model) {
+    throw new Error(
+      "OLLAMA_EMBEDDING_MODEL is not configured (e.g. nomic-embed-text). " +
+        "See .env.example.",
+    );
+  }
+  return model;
 }
 
+interface OllamaEmbedResponse {
+  // /api/embed returns one vector per input in `embeddings`.
+  embeddings?: number[][];
+  // Legacy /api/embeddings returns a single `embedding`.
+  embedding?: number[];
+}
+
+/** Embed a single string via the self-hosted Ollama server. */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const data = await ollamaPost<OllamaEmbedResponse>("/api/embed", {
+    model: embeddingModel(),
+    input: text,
+  });
+  const vector = data.embeddings?.[0] ?? data.embedding;
+  if (!vector || vector.length === 0) {
+    throw new Error("Ollama returned an empty embedding");
+  }
+  return vector;
+}
+
+/** Embed many strings in one request; returns one vector per input, in order. */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const client = getAIClient();
-  const response = await client.embeddings.create({
-    model: "text-embedding-3-small",
+  if (texts.length === 0) return [];
+  const data = await ollamaPost<OllamaEmbedResponse>("/api/embed", {
+    model: embeddingModel(),
     input: texts,
   });
-  return response.data.map((d) => d.embedding);
+  const vectors = data.embeddings;
+  if (!vectors || vectors.length !== texts.length) {
+    throw new Error(
+      `Ollama returned ${vectors?.length ?? 0} embeddings for ${texts.length} inputs`,
+    );
+  }
+  return vectors;
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
