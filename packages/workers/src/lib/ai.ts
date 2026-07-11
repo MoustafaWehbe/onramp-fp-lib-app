@@ -1,5 +1,4 @@
 export {
-  getAIClient,
   chatCompletion,
   generateEmbedding,
   generateEmbeddings,

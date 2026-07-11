@@ -1,1 +1,1 @@
-export { getAIClient, chatCompletion } from "@starter-kit/shared";
+export { chatCompletion } from "@starter-kit/shared";
