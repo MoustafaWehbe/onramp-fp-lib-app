@@ -3,6 +3,9 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   rootDir: ".",
+  // Run test files serially: the integration suites share one Postgres database
+  // and reset it, so parallel workers would race and wipe each other's rows.
+  maxWorkers: 1,
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/setup.ts"],
   // Runs once per test file (after the framework is installed) to close the BullMQ
