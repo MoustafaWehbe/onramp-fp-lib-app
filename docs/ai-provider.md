@@ -22,17 +22,32 @@ only in the local, gitignored `.env` and is **never committed**.
 | --- | --- | --- |
 | `OLLAMA_BASE_URL` | Base URL of the Ollama server | `http://localhost:11434` |
 | `OLLAMA_EMBEDDING_MODEL` | Embedding model (768-dim) | `nomic-embed-text` |
-| `OLLAMA_GENERATION_MODEL` | Generation model | *(unset — pending bake-off)* |
+| `OLLAMA_GENERATION_MODEL` | Generation model | `gemma4:26b` (see bake-off below) |
 
 ## Models
 
 - **Embeddings:** `nomic-embed-text` — 768-dimensional vectors (confirmed from a
   live response). Backs `BookEmbedding` and `TasteProfile.embedding`; similarity
   is computed in Postgres via pgvector cosine distance.
-- **Generation:** chosen by the **C2 bake-off** between `gemma4:26b` and
-  `qwen3.6:27b-64k` (both already pulled on the host). Until a winner is set in
-  `OLLAMA_GENERATION_MODEL`, any generation call fails fast. The chosen value and
-  the reasoning will be recorded here once the bake-off runs.
+- **Generation:** **`gemma4:26b`**, chosen by the C2 bake-off (vs `qwen3.6:27b-64k`).
+  Set via `OLLAMA_GENERATION_MODEL` in the local `.env`; if it is unset, generation
+  calls fail fast. See the bake-off summary below.
+
+## Generation model bake-off (C2)
+
+Four sample reader profiles (one exercising a mood modifier) were run through both
+candidates; each output was scored on: exactly-3 ranked picks, verbatim titles/authors,
+"why" grounded in the reader's excerpts, honoring a mood override, and emitting valid
+JSON with no surrounding text.
+
+- Both produced verbatim, well-grounded picks and both correctly honored the
+  "melancholic, under 300 pages" mood modifier (dropping the long candidates).
+- **`gemma4:26b` — chosen.** ~3x faster (~26s vs ~82s per report, warm). It emits its
+  JSON inside a Markdown code fence, so the discovery-report parser (C6) strips code
+  fences and tolerates surrounding text before `JSON.parse` — a deliberate robustness
+  measure that also guards against other models.
+- `qwen3.6:27b-64k` — emitted clean raw JSON and reasoned explicitly about the mood
+  constraint, but was ~3x slower.
 
 ## Endpoints used
 
