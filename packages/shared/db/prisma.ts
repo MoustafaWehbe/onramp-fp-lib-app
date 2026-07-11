@@ -4,6 +4,10 @@ import { PrismaClient } from "@prisma/client";
 // with a portable name instead of Prisma's generated internal path.
 export type { PrismaClient } from "@prisma/client";
 
+// Re-exported so consumers can catch typed Prisma errors (e.g. P2002 unique
+// violations) without importing @prisma/client directly.
+export { Prisma } from "@prisma/client";
+
 // Lazily-created singleton PrismaClient. Instantiation is deferred to the first
 // getPrisma() call so that merely importing this module (e.g. via the package
 // barrel) does not open a database connection — important for unit tests that

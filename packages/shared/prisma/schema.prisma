@@ -13,13 +13,12 @@
 // meant to be confirmed/adjusted by the author before migration — the guide
 // requires the schema to reflect the team's own understanding.
 //
-// pgvector: the two embedding-bearing columns (TasteProfile.embedding and
-// BookEmbedding.embedding) are intentionally NOT declared as Prisma fields yet.
-// nomic-embed-text's real vector dimension must be confirmed from a live API
-// response (Step 0) before sizing them; they will be added by a dedicated SQL
-// migration as `vector(<N>)` and queried via Prisma $queryRaw (cosine distance).
-// The `vector` extension itself is declared on the datasource so migrations
-// enable it reproducibly (docker/postgres/init.sql also enables it locally).
+// pgvector: TasteProfile.embedding and BookEmbedding.embedding are declared as
+// Unsupported("vector(768)") and created by the init migration (768 is the
+// nomic-embed-text dimension, verified from a live response). Because the client
+// can't read Unsupported columns directly, they're written/queried via Prisma
+// $queryRaw (cosine distance). The `vector` extension is declared on the
+// datasource so migrations enable it reproducibly (docker/postgres/init.sql too).
 
 generator client {
   provider        = "prisma-client-js"

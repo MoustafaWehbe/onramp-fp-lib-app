@@ -5,7 +5,19 @@ import { hashPassword } from "../auth/password";
 // repeatedly against an existing database.
 async function main() {
   const prisma = getPrisma();
-  const passwordHash = await hashPassword("Admin1234!");
+
+  // Never commit a real credential. Take the admin password from the
+  // environment; fall back to an obvious placeholder for local seeding only,
+  // and warn loudly so the default is never relied on silently.
+  const fallbackPassword = "ChangeMe123!";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? fallbackPassword;
+  if (!process.env.ADMIN_PASSWORD) {
+    console.warn(
+      "[seed] ADMIN_PASSWORD is not set — seeding the admin with an insecure " +
+        "default. Set ADMIN_PASSWORD to override it.",
+    );
+  }
+  const passwordHash = await hashPassword(adminPassword);
 
   await prisma.user.upsert({
     where: { email: "admin@example.com" },
