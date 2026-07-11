@@ -18,7 +18,11 @@ import {
 } from "@starter-kit/shared";
 
 afterAll(async () => {
-  await emailQueue.close();
-  await embeddingsQueue.close();
-  await getRedisConnection().quit();
+  // Attempt every close independently: if one queue close rejects, the other —
+  // and the Redis quit — must still run, or we'd leak the very handles this
+  // teardown exists to release.
+  await Promise.allSettled([emailQueue.close(), embeddingsQueue.close()]);
+  await getRedisConnection()
+    .quit()
+    .catch(() => undefined);
 });
