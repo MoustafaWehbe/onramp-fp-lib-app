@@ -3,6 +3,9 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   rootDir: ".",
+  // Integration tests share a single Postgres test database and reset it, so run
+  // test files serially to avoid cross-file interference.
+  maxWorkers: 1,
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
