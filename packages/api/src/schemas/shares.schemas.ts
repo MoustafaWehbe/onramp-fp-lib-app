@@ -6,3 +6,9 @@ export const inviteShareSchema = z.object({
 });
 
 export type InviteShareInput = z.infer<typeof inviteShareSchema>;
+
+export const addSharedBookSchema = z.object({
+  bookId: z.string().uuid(),
+});
+
+export type AddSharedBookInput = z.infer<typeof addSharedBookSchema>;

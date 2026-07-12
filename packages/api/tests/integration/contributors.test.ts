@@ -42,6 +42,7 @@ let aliceId = "";
 let aliceCookie = "";
 let bobId = "";
 let bobCookie = "";
+let carolId = "";
 let carolCookie = "";
 let shelfId = "";
 let bookId = "";
@@ -56,6 +57,7 @@ beforeAll(async () => {
   aliceCookie = alice.cookie;
   bobId = bob.id;
   bobCookie = bob.cookie;
+  carolId = carol.id;
   carolCookie = carol.cookie;
 
   // Seed Alice's private library directly (shelf CRUD lives on another branch).
@@ -248,5 +250,86 @@ describe("Shelf sharing + contributors (integration, real database)", () => {
       .get("/api/contributors/shelves")
       .set("Cookie", bobCookie);
     expect(bobShared.body.data).toHaveLength(0);
+  });
+
+  // ── WRITE access: a contributor can actually edit shelf membership ────────
+  it("owner grants WRITE access and the invitee accepts", async () => {
+    const invite = await request(app)
+      .post(`/api/shelves/${shelfId}/shares`)
+      .set("Cookie", aliceCookie)
+      .send({ email: "bob@example.com", accessLevel: "WRITE" });
+    expect(invite.status).toBe(201);
+    expect(invite.body.data.accessLevel).toBe("WRITE");
+
+    const accept = await request(app)
+      .post(`/api/shelves/${shelfId}/shares/accept`)
+      .set("Cookie", bobCookie);
+    expect(accept.status).toBe(200);
+    expect(accept.body.data.status).toBe("ACCEPTED");
+  });
+
+  it("a WRITE contributor adds and removes their own book on the shared shelf", async () => {
+    const bobBook = await request(app)
+      .post("/api/books")
+      .set("Cookie", bobCookie)
+      .send({ title: "Neuromancer", author: "William Gibson" });
+    const bobBookId = bobBook.body.data.id as string;
+
+    const added = await request(app)
+      .post(`/api/contributors/shelves/${shelfId}/books`)
+      .set("Cookie", bobCookie)
+      .send({ bookId: bobBookId });
+    expect(added.status).toBe(200);
+    expect(
+      added.body.data.books.map((b: { id: string }) => b.id),
+    ).toContain(bobBookId);
+
+    const removed = await request(app)
+      .delete(`/api/contributors/shelves/${shelfId}/books/${bobBookId}`)
+      .set("Cookie", bobCookie);
+    expect(removed.status).toBe(204);
+
+    const after = await request(app)
+      .get("/api/contributors/shelves")
+      .set("Cookie", bobCookie);
+    const shelf = after.body.data.find(
+      (s: { shelfId: string }) => s.shelfId === shelfId,
+    );
+    expect(shelf.books.map((b: { id: string }) => b.id)).not.toContain(
+      bobBookId,
+    );
+  });
+
+  it("a WRITE contributor can't shelve someone else's book (404)", async () => {
+    // bookId is Alice's book — Bob must not be able to reach into her library.
+    const res = await request(app)
+      .post(`/api/contributors/shelves/${shelfId}/books`)
+      .set("Cookie", bobCookie)
+      .send({ bookId });
+    expect(res.status).toBe(404);
+  });
+
+  it("a VIEW contributor can't edit shelf membership (404)", async () => {
+    // Carol declined earlier; clear that row, then give her VIEW access.
+    await request(app)
+      .delete(`/api/shelves/${shelfId}/shares/${carolId}`)
+      .set("Cookie", aliceCookie);
+    await request(app)
+      .post(`/api/shelves/${shelfId}/shares`)
+      .set("Cookie", aliceCookie)
+      .send({ email: "carol@example.com", accessLevel: "VIEW" });
+    await request(app)
+      .post(`/api/shelves/${shelfId}/shares/accept`)
+      .set("Cookie", carolCookie);
+
+    const carolBook = await request(app)
+      .post("/api/books")
+      .set("Cookie", carolCookie)
+      .send({ title: "Snow Crash", author: "Neal Stephenson" });
+    const res = await request(app)
+      .post(`/api/contributors/shelves/${shelfId}/books`)
+      .set("Cookie", carolCookie)
+      .send({ bookId: carolBook.body.data.id });
+    expect(res.status).toBe(404); // ACCEPTED but VIEW-only, not WRITE
   });
 });

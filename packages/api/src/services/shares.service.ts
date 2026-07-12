@@ -17,6 +17,29 @@ function isUniqueViolation(err: unknown): boolean {
 /** The invitee/user summary safe to expose in share responses. */
 const userSummary = { select: { id: true, email: true, name: true } };
 
+/**
+ * Book fields a contributor is allowed to see — catalogue metadata only. The
+ * owner's journal entry (reflection, rating, favourite quotes) is never loaded
+ * or projected here, so it can't leak through any shared-shelf view.
+ */
+function toBookMetadata(b: {
+  id: string;
+  title: string;
+  author: string;
+  genre: string | null;
+  coverImage: string | null;
+  status: string;
+}) {
+  return {
+    id: b.id,
+    title: b.title,
+    author: b.author,
+    genre: b.genre,
+    coverImage: b.coverImage,
+    status: b.status,
+  };
+}
+
 /** Throws 404 unless the shelf exists and belongs to the user. */
 async function ensureShelfOwned(userId: string, shelfId: string) {
   const shelf = await prisma.shelf.findUnique({ where: { id: shelfId } });
@@ -24,6 +47,20 @@ async function ensureShelfOwned(userId: string, shelfId: string) {
     throw createError("Shelf not found", 404);
   }
   return shelf;
+}
+
+/**
+ * Throws 404 unless the user holds an ACCEPTED, WRITE-level share of the shelf.
+ * A pending/declined share or a VIEW-only share is indistinguishable from "no
+ * such shelf" to the caller — we never confirm a shelf they can't write to.
+ */
+async function ensureWriteAccess(userId: string, shelfId: string) {
+  const share = await prisma.shelfShare.findUnique({
+    where: { shelfId_userId: { shelfId, userId } },
+  });
+  if (!share || share.status !== "ACCEPTED" || share.accessLevel !== "WRITE") {
+    throw createError("Shelf not found", 404);
+  }
 }
 
 export const sharesService = {
@@ -120,11 +157,7 @@ export const sharesService = {
 
   /**
    * INVITEE (incoming): shelves shared *with* this user that they've accepted.
-   *
-   * ISOLATION BOUNDARY: this returns the shelf and its books' metadata only.
-   * A contributor must never see the owner's journal entries, ratings, or
-   * reading metrics, so the book projection below is deliberately limited to
-   * scalar catalogue fields — journalEntry is never loaded or returned.
+   * Book metadata only — see toBookMetadata for the isolation boundary.
    */
   async sharedWithMe(userId: string) {
     const shares = await prisma.shelfShare.findMany({
@@ -145,14 +178,68 @@ export const sharesService = {
       name: s.shelf.name,
       accessLevel: s.accessLevel,
       owner: { id: s.shelf.user.id, name: s.shelf.user.name },
-      books: s.shelf.books.map((b) => ({
-        id: b.id,
-        title: b.title,
-        author: b.author,
-        genre: b.genre,
-        coverImage: b.coverImage,
-        status: b.status,
-      })),
+      books: s.shelf.books.map(toBookMetadata),
     }));
+  },
+
+  /** A single shared shelf's view (metadata only) for a user who has access. */
+  async sharedShelf(userId: string, shelfId: string) {
+    const share = await prisma.shelfShare.findUnique({
+      where: { shelfId_userId: { shelfId, userId } },
+      include: {
+        shelf: {
+          include: {
+            user: { select: { id: true, name: true } },
+            books: { orderBy: { createdAt: "desc" } },
+          },
+        },
+      },
+    });
+    if (!share || share.status !== "ACCEPTED") {
+      throw createError("Shelf not found", 404);
+    }
+    return {
+      shelfId: share.shelfId,
+      name: share.shelf.name,
+      accessLevel: share.accessLevel,
+      owner: { id: share.shelf.user.id, name: share.shelf.user.name },
+      books: share.shelf.books.map(toBookMetadata),
+    };
+  },
+
+  /**
+   * WRITE contributor: add one of THEIR OWN books to a shelf shared with them.
+   * A contributor manages their own contributions to the shared collection —
+   * they can't reach into the owner's (or anyone else's) library, and they
+   * can't touch the book records themselves, only the shelf membership.
+   */
+  async addBookToSharedShelf(userId: string, shelfId: string, bookId: string) {
+    await ensureWriteAccess(userId, shelfId);
+    const book = await prisma.book.findUnique({ where: { id: bookId } });
+    if (!book || book.userId !== userId) {
+      throw createError("Book not found", 404);
+    }
+    await prisma.shelf.update({
+      where: { id: shelfId },
+      data: { books: { connect: { id: bookId } } },
+    });
+    return this.sharedShelf(userId, shelfId);
+  },
+
+  /** WRITE contributor: remove one of their own books from a shared shelf. */
+  async removeBookFromSharedShelf(
+    userId: string,
+    shelfId: string,
+    bookId: string,
+  ) {
+    await ensureWriteAccess(userId, shelfId);
+    const book = await prisma.book.findUnique({ where: { id: bookId } });
+    if (!book || book.userId !== userId) {
+      throw createError("Book not found", 404);
+    }
+    await prisma.shelf.update({
+      where: { id: shelfId },
+      data: { books: { disconnect: { id: bookId } } },
+    });
   },
 };
