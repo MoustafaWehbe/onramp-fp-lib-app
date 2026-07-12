@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authenticate";
-import { notImplemented } from "../lib/not-implemented";
+import { contributorsController } from "../controllers/contributors.controller";
 
-// PLACEHOLDER: "contributors" has no data model yet and its scope is unconfirmed
-// (see ARCHITECTURE.md §2 open question). Scaffolded as an authenticated stub so
-// the route wiring exists; the shape will change once the feature is defined.
+// Contributors = shelf collaborators (ARCHITECTURE.md §2). "/" is the outgoing
+// view (people I share my shelves with); "/shelves" is the incoming view
+// (shelves shared with me), which returns book metadata only — never the
+// owner's journal entries, ratings, or reading metrics.
 const router = Router();
 router.use(authenticate);
 
-router.get("/", notImplemented);
+router.get("/", contributorsController.list);
+router.get("/shelves", contributorsController.sharedWithMe);
 
 export { router as contributorsRouter };
