@@ -3,6 +3,8 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { SharedLayout } from "../layouts/SharedLayout";
+import { useAuth } from "../hooks/useAuth";
+import { Welcome } from "../pages/Welcome";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
 import { Settings } from "../pages/dashboard/Settings";
@@ -18,10 +20,22 @@ import { SharedShelves } from "../pages/shared/SharedShelves";
 import { SharedShelfDetail } from "../pages/shared/SharedShelfDetail";
 import { NotFound } from "../pages/NotFound";
 
+/**
+ * "/" is the public welcome (design A1), but a signed-in reader has no use for
+ * the pitch — send them straight to their library.
+ */
+function Landing() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  return user ? <Navigate to="/library" replace /> : <Welcome />;
+}
+
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public auth routes */}
+      {/* Public */}
+      <Route path="/" element={<Landing />} />
+
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -32,7 +46,6 @@ export function AppRoutes() {
         <Route element={<AppLayout />}>
           {/* The library is the home of the app — there's no separate dashboard
               in the design; "Library" is the first nav item. */}
-          <Route path="/" element={<Navigate to="/library" replace />} />
           <Route
             path="/dashboard"
             element={<Navigate to="/library" replace />}
