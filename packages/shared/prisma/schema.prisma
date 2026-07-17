@@ -77,6 +77,7 @@ model User {
   discoveryReports DiscoveryReport[]
   shelves          Shelf[]
   shelfShares      ShelfShare[]
+  shelfBookAdds    BookOnShelf[]
 
   @@map("users")
 }
@@ -122,6 +123,8 @@ model Book {
   author        String
   genre         String?
   coverImage    String?       @map("cover_image") // book cover URL
+  year          Int? // publication year
+  pageCount     Int?          @map("page_count")
   status        ReadingStatus @default(WANT_TO_READ)
   openLibraryId String?       @map("open_library_id") // if added from Open Library
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -130,7 +133,7 @@ model Book {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   journalEntry JournalEntry?
   embedding    BookEmbedding?
-  shelves      Shelf[]
+  shelves      BookOnShelf[]
 
   // Dedup: primary match on openLibraryId (books added from Open Library),
   // fallback to (title, author) for manually-entered books. Postgres allows
@@ -146,18 +149,36 @@ model Book {
 /// number of shelves. Cross-account sharing (joint view/write access) is
 /// modelled by ShelfShare below.
 model Shelf {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books  Book[]
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books  BookOnShelf[]
   shares ShelfShare[]
 
   @@unique([userId, name])
   @@map("shelves")
+}
+
+/// Explicit Book<->Shelf join. An implicit m2m can't record who put a book on a
+/// shelf, which a shared shelf needs in order to show "added by Maya".
+model BookOnShelf {
+  shelfId   String   @map("shelf_id") @db.Uuid
+  bookId    String   @map("book_id") @db.Uuid
+  addedById String   @map("added_by_id") @db.Uuid
+  addedAt   DateTime @default(now()) @map("added_at")
+
+  shelf   Shelf @relation(fields: [shelfId], references: [id], onDelete: Cascade)
+  book    Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  addedBy User  @relation(fields: [addedById], references: [id], onDelete: Cascade)
+
+  @@id([shelfId, bookId])
+  @@index([addedById])
+  @@map("book_on_shelf")
 }
 
 /// Grants another user view or write access to a single shelf. The shelf owner

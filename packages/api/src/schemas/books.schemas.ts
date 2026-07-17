@@ -15,6 +15,8 @@ export const createBookSchema = z.object({
   author: z.string().trim().min(1).max(300),
   genre: z.string().trim().max(120).optional(),
   coverImage: z.string().url().max(2000).optional(),
+  year: z.number().int().min(0).max(2100).optional(),
+  pageCount: z.number().int().min(1).max(50_000).optional(),
   status: statusEnum.optional(),
   openLibraryId: z.string().trim().max(120).optional(),
 });
@@ -24,6 +26,8 @@ export const updateBookSchema = z.object({
   author: z.string().trim().min(1).max(300).optional(),
   genre: z.string().trim().max(120).optional(),
   coverImage: z.string().url().max(2000).optional(),
+  year: z.number().int().min(0).max(2100).optional(),
+  pageCount: z.number().int().min(1).max(50_000).optional(),
   status: statusEnum.optional(),
 });
 

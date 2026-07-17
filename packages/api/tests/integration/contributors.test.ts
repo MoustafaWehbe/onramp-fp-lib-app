@@ -75,9 +75,8 @@ beforeAll(async () => {
     },
   });
   bookId = book.id;
-  await prisma.shelf.update({
-    where: { id: shelfId },
-    data: { books: { connect: { id: bookId } } },
+  await prisma.bookOnShelf.create({
+    data: { shelfId, bookId, addedById: aliceId },
   });
   // Alice's personal reflection + rating — a contributor must never see these.
   await prisma.journalEntry.create({

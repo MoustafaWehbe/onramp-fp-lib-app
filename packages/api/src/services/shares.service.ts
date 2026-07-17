@@ -17,26 +17,45 @@ function isUniqueViolation(err: unknown): boolean {
 /** The invitee/user summary safe to expose in share responses. */
 const userSummary = { select: { id: true, email: true, name: true } };
 
+/** Shelf membership joined to its book + who added it. */
+const membership = {
+  include: { book: true, addedBy: { select: { id: true, name: true } } },
+  orderBy: { addedAt: "desc" },
+} as const;
+
+type MembershipRow = {
+  addedAt: Date;
+  addedBy: { id: string; name: string };
+  book: {
+    id: string;
+    title: string;
+    author: string;
+    genre: string | null;
+    coverImage: string | null;
+    status: string;
+    year: number | null;
+    pageCount: number | null;
+  };
+};
+
 /**
- * Book fields a contributor is allowed to see — catalogue metadata only. The
- * owner's journal entry (reflection, rating, favourite quotes) is never loaded
- * or projected here, so it can't leak through any shared-shelf view.
+ * The only book fields a contributor may see: catalogue metadata plus who put
+ * the book on the shelf. The owner's journal entry (reflection, rating,
+ * favourite quotes) is never loaded or projected here, so it cannot leak
+ * through any shared-shelf view.
  */
-function toBookMetadata(b: {
-  id: string;
-  title: string;
-  author: string;
-  genre: string | null;
-  coverImage: string | null;
-  status: string;
-}) {
+function toBookMetadata(row: MembershipRow) {
   return {
-    id: b.id,
-    title: b.title,
-    author: b.author,
-    genre: b.genre,
-    coverImage: b.coverImage,
-    status: b.status,
+    id: row.book.id,
+    title: row.book.title,
+    author: row.book.author,
+    genre: row.book.genre,
+    coverImage: row.book.coverImage,
+    status: row.book.status,
+    year: row.book.year,
+    pageCount: row.book.pageCount,
+    addedBy: row.addedBy,
+    addedAt: row.addedAt,
   };
 }
 
@@ -166,7 +185,7 @@ export const sharesService = {
         shelf: {
           include: {
             user: { select: { id: true, name: true } },
-            books: { orderBy: { createdAt: "desc" } },
+            books: membership,
           },
         },
       },
@@ -176,6 +195,7 @@ export const sharesService = {
     return shares.map((s) => ({
       shelfId: s.shelfId,
       name: s.shelf.name,
+      description: s.shelf.description,
       accessLevel: s.accessLevel,
       owner: { id: s.shelf.user.id, name: s.shelf.user.name },
       books: s.shelf.books.map(toBookMetadata),
@@ -190,7 +210,7 @@ export const sharesService = {
         shelf: {
           include: {
             user: { select: { id: true, name: true } },
-            books: { orderBy: { createdAt: "desc" } },
+            books: membership,
           },
         },
       },
@@ -201,6 +221,7 @@ export const sharesService = {
     return {
       shelfId: share.shelfId,
       name: share.shelf.name,
+      description: share.shelf.description,
       accessLevel: share.accessLevel,
       owner: { id: share.shelf.user.id, name: share.shelf.user.name },
       books: share.shelf.books.map(toBookMetadata),
@@ -219,9 +240,10 @@ export const sharesService = {
     if (!book || book.userId !== userId) {
       throw createError("Book not found", 404);
     }
-    await prisma.shelf.update({
-      where: { id: shelfId },
-      data: { books: { connect: { id: bookId } } },
+    await prisma.bookOnShelf.upsert({
+      where: { shelfId_bookId: { shelfId, bookId } },
+      create: { shelfId, bookId, addedById: userId },
+      update: {},
     });
     return this.sharedShelf(userId, shelfId);
   },
@@ -237,9 +259,6 @@ export const sharesService = {
     if (!book || book.userId !== userId) {
       throw createError("Book not found", 404);
     }
-    await prisma.shelf.update({
-      where: { id: shelfId },
-      data: { books: { disconnect: { id: bookId } } },
-    });
+    await prisma.bookOnShelf.deleteMany({ where: { shelfId, bookId } });
   },
 };
