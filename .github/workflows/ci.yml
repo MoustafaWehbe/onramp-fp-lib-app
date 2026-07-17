@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: build · test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # pgvector/pgvector ships PG16 with the vector extension available. The
+        # init migration runs CREATE EXTENSION "vector", which plain postgres:16
+        # cannot satisfy — the project needs this image.
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: starter_kit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # packages/api/tests/setup.ts hardcodes these two; the services above are
+      # configured to match it exactly (db name, credentials, ports).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/starter_kit_test
+      REDIS_URL: redis://localhost:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace @starter-kit/shared
+
+      - name: Apply migrations to the test database
+        run: npm run db:deploy --workspace @starter-kit/shared
+
+      # Lint is deliberately NOT a gate yet. eslint is not installed anywhere in
+      # this repo — no package declares it, and it appears nowhere in the lock
+      # file — so every package's `lint` script dies with "eslint: not found".
+      # Wiring eslint up (deps + a config per package) is its own change; adding
+      # it here would only make CI permanently red. Build and test are the gates
+      # that work today.
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test
