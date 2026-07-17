@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: lint · build · test
+    name: build · test
     runs-on: ubuntu-latest
 
     services:
@@ -65,8 +65,12 @@ jobs:
       - name: Apply migrations to the test database
         run: npm run db:deploy --workspace @starter-kit/shared
 
-      - name: Lint
-        run: npm run lint
+      # Lint is deliberately NOT a gate yet. eslint is not installed anywhere in
+      # this repo — no package declares it, and it appears nowhere in the lock
+      # file — so every package's `lint` script dies with "eslint: not found".
+      # Wiring eslint up (deps + a config per package) is its own change; adding
+      # it here would only make CI permanently red. Build and test are the gates
+      # that work today.
 
       - name: Build
         run: npm run build
