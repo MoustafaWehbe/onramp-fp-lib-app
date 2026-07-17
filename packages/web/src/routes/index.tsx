@@ -6,6 +6,9 @@ import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
 import { Settings } from "../pages/dashboard/Settings";
 import { Library } from "../pages/library/Library";
+import { AddBook } from "../pages/library/AddBook";
+import { BookDetail } from "../pages/library/BookDetail";
+import { Journal } from "../pages/library/Journal";
 import { NotFound } from "../pages/NotFound";
 
 export function AppRoutes() {
@@ -28,6 +31,9 @@ export function AppRoutes() {
             element={<Navigate to="/library" replace />}
           />
           <Route path="/library" element={<Library />} />
+          <Route path="/books/new" element={<AddBook />} />
+          <Route path="/books/:id" element={<BookDetail />} />
+          <Route path="/books/:id/journal" element={<Journal />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
