@@ -45,6 +45,17 @@ enum ReadingStatus {
   ABANDONED
 }
 
+enum ShareAccessLevel {
+  VIEW
+  WRITE
+}
+
+enum ShareStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 // ─── Auth (mirrors existing tables) ───────────────────────────────────────────
 
 model User {
@@ -65,6 +76,7 @@ model User {
   tasteProfile     TasteProfile?
   discoveryReports DiscoveryReport[]
   shelves          Shelf[]
+  shelfShares      ShelfShare[]
 
   @@map("users")
 }
@@ -131,8 +143,8 @@ model Book {
 
 /// A user-created named collection of books (many-to-many with Book).
 /// Complements Book.status (the reading lifecycle): a book can sit on any
-/// number of shelves. Cross-account shared shelves (joint view/write access)
-/// are designed in ARCHITECTURE.md but intentionally not in the schema yet.
+/// number of shelves. Cross-account sharing (joint view/write access) is
+/// modelled by ShelfShare below.
 model Shelf {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -140,11 +152,34 @@ model Shelf {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books Book[]
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books  Book[]
+  shares ShelfShare[]
 
   @@unique([userId, name])
   @@map("shelves")
+}
+
+/// Grants another user view or write access to a single shelf. The shelf owner
+/// is Shelf.userId; `userId` here is the invited collaborator. Access is scoped
+/// to the shelf and its books only — never the owner's journal entries, ratings,
+/// or reading metrics (enforced in the contributors service). "Linking accounts"
+/// is the invite lifecycle: PENDING on invite, then ACCEPTED or DECLINED.
+model ShelfShare {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shelfId     String           @map("shelf_id") @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  accessLevel ShareAccessLevel @default(VIEW) @map("access_level")
+  status      ShareStatus      @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  shelf Shelf @relation(fields: [shelfId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shelfId, userId])
+  @@index([userId])
+  @@map("shelf_shares")
 }
 
 /// A user's reflection on a finished book. Presence of one (with status
