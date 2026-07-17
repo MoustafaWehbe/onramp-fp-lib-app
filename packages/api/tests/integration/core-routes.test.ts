@@ -2,9 +2,9 @@ import request from "supertest";
 import { signAccessToken } from "@starter-kit/shared";
 import { app } from "../../app";
 
-// Verifies the scaffolded routes are wired with the correct auth/role middleware.
-// Handlers are stubs (501), so no database is needed — authenticate/authorize run
-// purely on the JWT.
+// Verifies the routes are wired with the correct auth/role middleware. Only the
+// admin handlers are still stubs (501); every owner-scoped route is implemented,
+// so those assertions check that auth passes through to the real handler.
 
 function cookie(role: "user" | "admin"): string {
   const token = signAccessToken({
@@ -35,13 +35,15 @@ describe("core route scaffolding — auth/role wiring", () => {
     }
   });
 
-  it("an authenticated user reaches an owner-scoped stub (501)", async () => {
-    // /api/ai/taste-profile stays a stub (the AI pipeline is a separate, gated
-    // phase); Books, Analytics, and Contributors are now implemented.
+  it("an authenticated user passes the auth gate and reaches the handler", async () => {
+    // There's no owner-scoped 501 stub left to probe — the AI GETs were the last
+    // ones. What still matters is that authenticate lets a valid token through
+    // to the handler: this token's user has no taste profile, so the handler
+    // itself answers 404 rather than authenticate short-circuiting on 401/403.
     const res = await request(app)
       .get("/api/ai/taste-profile")
       .set("Cookie", cookie("user"));
-    expect(res.status).toBe(501);
+    expect(res.status).toBe(404);
   });
 
   it("admin routes require authentication, then the admin role", async () => {

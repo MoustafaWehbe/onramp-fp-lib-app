@@ -13,6 +13,16 @@ export const contributorsController = {
     }
   },
 
+  /** Invites waiting on this user's answer. */
+  async invites(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invites = await sharesService.pendingInvites(req.user!.userId);
+      res.json({ data: invites });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   /** Shelves shared with this user (incoming) — book metadata only. */
   async sharedWithMe(
     req: Request,

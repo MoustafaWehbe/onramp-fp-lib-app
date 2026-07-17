@@ -92,6 +92,20 @@ export interface DiscoveryReport {
   items: DiscoveryItem[];
 }
 
+/** The 768-dim embedding is never sent to the client — only the summary. */
+export interface TasteProfile {
+  id: string;
+  userId: string;
+  aggregatedData: {
+    topGenres: { genre: string; count: number }[];
+    topAuthors: { author: string; count: number }[];
+    avgRating: number | null;
+  };
+  refreshedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type AccessLevel = "VIEW" | "WRITE";
 export type ShareStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 

@@ -20,6 +20,28 @@ export function useContributors() {
   });
 }
 
+export interface PendingInvite {
+  shelfId: string;
+  name: string;
+  description: string | null;
+  accessLevel: AccessLevel;
+  invitedAt: string;
+  owner: { id: string; name: string };
+}
+
+/** Invites waiting on my answer. */
+export function usePendingInvites() {
+  return useQuery({
+    queryKey: ["invites"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: PendingInvite[] }>(
+        "/contributors/invites",
+      );
+      return data.data;
+    },
+  });
+}
+
 /** Incoming: shelves shared with me. Metadata only — never the owner's journal. */
 export function useSharedWithMe() {
   return useQuery({
@@ -91,7 +113,10 @@ export function useRespondToInvite() {
         `/shelves/${shelfId}/shares/${accept ? "accept" : "decline"}`,
       );
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["shared-with-me"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["shared-with-me"] });
+      qc.invalidateQueries({ queryKey: ["invites"] });
+    },
   });
 }
 

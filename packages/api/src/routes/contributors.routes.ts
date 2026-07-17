@@ -13,6 +13,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/", contributorsController.list);
+router.get("/invites", contributorsController.invites);
 router.get("/shelves", contributorsController.sharedWithMe);
 router.post(
   "/shelves/:shelfId/books",

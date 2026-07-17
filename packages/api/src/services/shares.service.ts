@@ -138,6 +138,36 @@ export const sharesService = {
     await prisma.shelfShare.delete({ where: { id: share.id } });
   },
 
+  /**
+   * INVITEE: invites waiting on this user's answer. Without this they'd have no
+   * way to discover an invite, and accept/decline would be unreachable. Shows
+   * the shelf name and who sent it — nothing about the owner's library.
+   */
+  async pendingInvites(userId: string) {
+    const shares = await prisma.shelfShare.findMany({
+      where: { userId, status: "PENDING" },
+      include: {
+        shelf: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            user: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return shares.map((s) => ({
+      shelfId: s.shelfId,
+      name: s.shelf.name,
+      description: s.shelf.description,
+      accessLevel: s.accessLevel,
+      invitedAt: s.createdAt,
+      owner: { id: s.shelf.user.id, name: s.shelf.user.name },
+    }));
+  },
+
   /** INVITEE: accept or decline their own pending invite for a shelf. */
   async respond(inviteeId: string, shelfId: string, accept: boolean) {
     const share = await prisma.shelfShare.findUnique({

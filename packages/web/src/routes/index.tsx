@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
+import { SharedLayout } from "../layouts/SharedLayout";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
 import { Settings } from "../pages/dashboard/Settings";
@@ -13,6 +14,8 @@ import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
 import { Metrics } from "../pages/metrics/Metrics";
 import { Discover } from "../pages/discover/Discover";
+import { SharedShelves } from "../pages/shared/SharedShelves";
+import { SharedShelfDetail } from "../pages/shared/SharedShelfDetail";
 import { NotFound } from "../pages/NotFound";
 
 export function AppRoutes() {
@@ -43,6 +46,13 @@ export function AppRoutes() {
           <Route path="/discover" element={<Discover />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        {/* Shared shelves get the reduced "contributor view" chrome — the
+            shrunken nav is the privacy boundary made visible (design E17). */}
+        <Route element={<SharedLayout />}>
+          <Route path="/shared" element={<SharedShelves />} />
+          <Route path="/shared/:id" element={<SharedShelfDetail />} />
         </Route>
       </Route>
 

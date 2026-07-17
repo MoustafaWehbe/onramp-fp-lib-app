@@ -1,6 +1,33 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
-import type { DiscoveryReport } from "../lib/types";
+import type { DiscoveryReport, TasteProfile } from "../lib/types";
+
+/** Past reports, newest first — powers D13's "Last report". */
+export function useDiscoveryReports() {
+  return useQuery({
+    queryKey: ["discovery-reports"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: DiscoveryReport[] }>(
+        "/ai/discovery-reports",
+      );
+      return data.data;
+    },
+  });
+}
+
+/** The standing taste profile. 404s until it's been refreshed at least once. */
+export function useTasteProfile() {
+  return useQuery({
+    queryKey: ["taste-profile"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: TasteProfile }>(
+        "/ai/taste-profile",
+      );
+      return data.data;
+    },
+    retry: false, // a 404 here is "not built yet", not a transient failure
+  });
+}
 
 /**
  * Generate a tailored discovery report. `moodModifier` is a one-time note laid

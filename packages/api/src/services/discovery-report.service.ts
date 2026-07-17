@@ -282,6 +282,61 @@ async function persistReport(
   };
 }
 
+interface StoredReport {
+  id: string;
+  moodModifier: string | null;
+  createdAt: Date;
+  items: {
+    rank: number;
+    title: string;
+    author: string;
+    rationale: string;
+    similarity: number | null;
+  }[];
+}
+
+function toResult(report: StoredReport): DiscoveryReportResult {
+  return {
+    id: report.id,
+    moodModifier: report.moodModifier,
+    createdAt: report.createdAt,
+    items: report.items.map((it) => ({
+      rank: it.rank,
+      title: it.title,
+      author: it.author,
+      rationale: it.rationale,
+      similarity: it.similarity,
+    })),
+  };
+}
+
+/** Owner-scoped: this user's reports, newest first, each with its three picks. */
+export async function listDiscoveryReports(
+  userId: string,
+): Promise<DiscoveryReportResult[]> {
+  const reports = await prisma.discoveryReport.findMany({
+    where: { userId },
+    include: { items: { orderBy: { rank: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return reports.map(toResult);
+}
+
+/** Owner-scoped: a single report. 404 if it isn't this user's. */
+export async function getDiscoveryReport(
+  userId: string,
+  id: string,
+): Promise<DiscoveryReportResult> {
+  const report = await prisma.discoveryReport.findUnique({
+    where: { id },
+    include: { items: { orderBy: { rank: "asc" } } },
+  });
+  if (!report || report.userId !== userId) {
+    throw createError("Discovery report not found", 404);
+  }
+  return toResult(report);
+}
+
 function matchKey(title: string, author: string): string {
-  return `${title.trim().toLowerCase()} ${author.trim().toLowerCase()}`;
+  return `${title.trim().toLowerCase()}\u0000${author.trim().toLowerCase()}`;
 }

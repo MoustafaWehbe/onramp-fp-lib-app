@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGenerateReport } from "../../hooks/useDiscovery";
+import { useDiscoveryReports, useGenerateReport } from "../../hooks/useDiscovery";
 import { useBooks } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -18,13 +18,16 @@ const MOOD_EXAMPLES = [
 /** Design D13–D15 — discovery entry, the mood modifier, and the report. */
 export function Discover() {
   const generate = useGenerateReport();
+  const { data: history } = useDiscoveryReports();
   const { data: finished } = useBooks({ status: "FINISHED" });
 
   const [moodOpen, setMoodOpen] = useState(false);
   const [mood, setMood] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const report = generate.data;
+  // Show the freshly generated report if there is one, otherwise the last one
+  // we stored — so a report survives a refresh (design D13, "Last report").
+  const report = generate.data ?? history?.[0];
   const finishedCount = finished?.length ?? 0;
   const canGenerate = finishedCount > 0;
 
