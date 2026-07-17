@@ -40,9 +40,12 @@ function flattenBooks(
 
 export const shelvesService = {
   async list(userId: string) {
+    // _count powers the shelf list's "5 books · 1 shared" line (design C9)
+    // without shipping every book on every shelf.
     return prisma.shelf.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      include: { _count: { select: { books: true, shares: true } } },
     });
   },
 

@@ -9,6 +9,10 @@ import { Library } from "../pages/library/Library";
 import { AddBook } from "../pages/library/AddBook";
 import { BookDetail } from "../pages/library/BookDetail";
 import { Journal } from "../pages/library/Journal";
+import { Shelves } from "../pages/shelves/Shelves";
+import { ShelfDetail } from "../pages/shelves/ShelfDetail";
+import { Metrics } from "../pages/metrics/Metrics";
+import { Discover } from "../pages/discover/Discover";
 import { NotFound } from "../pages/NotFound";
 
 export function AppRoutes() {
@@ -34,6 +38,10 @@ export function AppRoutes() {
           <Route path="/books/new" element={<AddBook />} />
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/books/:id/journal" element={<Journal />} />
+          <Route path="/shelves" element={<Shelves />} />
+          <Route path="/shelves/:id" element={<ShelfDetail />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>

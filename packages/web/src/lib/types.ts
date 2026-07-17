@@ -58,6 +58,8 @@ export interface Shelf {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Present on the list endpoint — powers "5 books · 1 shared" (design C9). */
+  _count?: { books: number; shares: number };
 }
 
 /** A book as it appears on a shelf — carries who put it there (design E17). */
