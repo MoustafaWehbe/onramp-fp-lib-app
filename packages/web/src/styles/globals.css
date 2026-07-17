@@ -3,25 +3,30 @@
 @tailwind utilities;
 
 @layer base {
+  /* Folio — the warm paper palette from the approved design canvas. Values are
+     HSL channels so Tailwind's opacity modifiers (bg-primary/90) keep working.
+     Hex equivalents are noted for cross-checking against the design. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --background: 39 34% 87%; /* cream        #E9E1D2 */
+    --foreground: 36 21% 11%; /* ink          #221D16 */
+    --card: 40 100% 99%; /* surface           #FFFDF9 */
+    --card-foreground: 36 21% 11%;
+    --popover: 40 100% 99%;
+    --popover-foreground: 36 21% 11%;
+    --primary: 17 57% 41%; /* terracotta      #A34E2C */
+    --primary-foreground: 40 100% 99%;
+    --secondary: 39 32% 92%;
+    --secondary-foreground: 36 21% 11%;
+    --muted: 39 32% 90%;
+    --muted-foreground: 34 11% 39%; /* muted ink #6E6559 */
+    --accent: 23 54% 91%; /* terracotta wash  #F4E4DA */
+    --accent-foreground: 16 61% 34%; /* accent ink #8C3F22 */
+    --destructive: 0 55% 38%;
+    --destructive-foreground: 40 100% 99%;
+    --border: 39 32% 86%; /* #E7DFD0 */
+    --input: 39 32% 86%;
+    --ring: 17 57% 41%;
+    --radius: 6px; /* the design specifies 6px, not 0.5rem */
   }
 
   .dark {

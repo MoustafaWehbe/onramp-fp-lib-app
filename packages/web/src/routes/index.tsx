@@ -4,8 +4,8 @@ import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
-import { Dashboard } from "../pages/dashboard/Dashboard";
 import { Settings } from "../pages/dashboard/Settings";
+import { Library } from "../pages/library/Library";
 import { NotFound } from "../pages/NotFound";
 
 export function AppRoutes() {
@@ -20,8 +20,14 @@ export function AppRoutes() {
       {/* Protected app routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* The library is the home of the app — there's no separate dashboard
+              in the design; "Library" is the first nav item. */}
+          <Route path="/" element={<Navigate to="/library" replace />} />
+          <Route
+            path="/dashboard"
+            element={<Navigate to="/library" replace />}
+          />
+          <Route path="/library" element={<Library />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
