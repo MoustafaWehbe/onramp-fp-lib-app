@@ -18,6 +18,7 @@ import { Metrics } from "../pages/metrics/Metrics";
 import { Discover } from "../pages/discover/Discover";
 import { SharedShelves } from "../pages/shared/SharedShelves";
 import { SharedShelfDetail } from "../pages/shared/SharedShelfDetail";
+import { Admin } from "../pages/admin/Admin";
 import { NotFound } from "../pages/NotFound";
 
 /**
@@ -28,6 +29,14 @@ function Landing() {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   return user ? <Navigate to="/library" replace /> : <Welcome />;
+}
+
+/** The server enforces the role on every /admin call; this guard just keeps
+ *  non-admins from seeing an empty shell of the page. */
+function AdminRoute() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  return user?.role === "admin" ? <Admin /> : <Navigate to="/library" replace />;
 }
 
 export function AppRoutes() {
@@ -67,6 +76,9 @@ export function AppRoutes() {
           <Route path="/shared" element={<SharedShelves />} />
           <Route path="/shared/:id" element={<SharedShelfDetail />} />
         </Route>
+
+        {/* Admin is deliberately its own mode with its own chrome (F18). */}
+        <Route path="/admin" element={<AdminRoute />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -1,16 +1,19 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authenticate";
 import { authorize } from "../middleware/authorize";
-import { notImplemented } from "../lib/not-implemented";
+import { validate } from "../middleware/validate";
+import { adminController } from "../controllers/admin.controller";
+import { updateUserSchema } from "../schemas/admin.schemas";
 
-// Admin-only: authenticated AND role === "admin".
+// Admin-only: authenticated AND role === "admin". Account management and
+// anonymized aggregates — never a user's books, journals, or shelves.
 const router = Router();
 router.use(authenticate, authorize("admin"));
 
-router.get("/users", notImplemented);
-router.get("/users/:id", notImplemented);
-router.patch("/users/:id", notImplemented);
-router.delete("/users/:id", notImplemented);
-router.get("/stats", notImplemented);
+router.get("/users", adminController.listUsers);
+router.get("/users/:id", adminController.getUser);
+router.patch("/users/:id", validate(updateUserSchema), adminController.updateUser);
+router.delete("/users/:id", adminController.deleteUser);
+router.get("/stats", adminController.stats);
 
 export { router as adminRouter };

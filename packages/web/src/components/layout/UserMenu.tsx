@@ -90,6 +90,17 @@ export function UserMenu() {
             Settings
           </Link>
 
+          {user?.role === "admin" && (
+            <Link
+              to="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent/50"
+            >
+              Admin
+            </Link>
+          )}
+
           <button
             type="button"
             role="menuitem"

@@ -2,9 +2,9 @@ import request from "supertest";
 import { signAccessToken } from "@starter-kit/shared";
 import { app } from "../../app";
 
-// Verifies the routes are wired with the correct auth/role middleware. Only the
-// admin handlers are still stubs (501); every owner-scoped route is implemented,
-// so those assertions check that auth passes through to the real handler.
+// Verifies the routes are wired with the correct auth/role middleware. Every
+// handler is implemented now, so these assertions check that auth passes
+// through to the real handler rather than short-circuiting at 401/403.
 
 function cookie(role: "user" | "admin"): string {
   const token = signAccessToken({
@@ -58,6 +58,6 @@ describe("core route scaffolding — auth/role wiring", () => {
     const asAdmin = await request(app)
       .get("/api/admin/users")
       .set("Cookie", cookie("admin"));
-    expect(asAdmin.status).toBe(501); // authorized, reaches the stub
+    expect(asAdmin.status).toBe(200); // authorized, reaches the real handler
   });
 });
