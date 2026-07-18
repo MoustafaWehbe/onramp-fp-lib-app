@@ -1,42 +1,60 @@
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../hooks/useAuth";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
 
 export function Settings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  async function signOut() {
+    await logout();
+    queryClient.clear(); // don't leave this reader's data cached for the next one
+    navigate("/", { replace: true });
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings.</p>
-      </div>
+    <div className="max-w-2xl space-y-8">
+      <header>
+        <h1 className="font-display text-[2rem] leading-tight text-foreground">
+          Settings
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your account, and nothing you have to share.
+        </p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Your account information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Name</span>
-            <span>{user?.name}</span>
+      <section className="rounded-[var(--radius)] border border-border bg-card p-5">
+        <h2 className="font-display text-lg text-foreground">Profile</h2>
+        <dl className="mt-4 space-y-3">
+          <div className="flex justify-between gap-4 text-sm">
+            <dt className="text-muted-foreground">Name</dt>
+            <dd className="text-foreground">{user?.name}</dd>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Email</span>
-            <span>{user?.email}</span>
+          <div className="flex justify-between gap-4 text-sm">
+            <dt className="text-muted-foreground">Email</dt>
+            <dd className="text-foreground">{user?.email}</dd>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Role</span>
-            <span className="capitalize">{user?.role}</span>
+          <div className="flex justify-between gap-4 text-sm">
+            <dt className="text-muted-foreground">Role</dt>
+            <dd className="capitalize text-foreground">{user?.role}</dd>
           </div>
-        </CardContent>
-      </Card>
+        </dl>
+      </section>
+
+      <section className="space-y-3 rounded-[var(--radius)] border border-border bg-card p-5">
+        <div>
+          <h2 className="font-display text-lg text-foreground">Session</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Signing out ends this session on the server, not just in this
+            browser.
+          </p>
+        </div>
+        <Button variant="outline" onClick={signOut}>
+          Sign out
+        </Button>
+      </section>
     </div>
   );
 }

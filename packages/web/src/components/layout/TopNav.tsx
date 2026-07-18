@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 import { usePendingInvites } from "../../hooks/useContributors";
+import { UserMenu } from "./UserMenu";
 import { cn } from "../../lib/utils";
 
 const NAV = [
@@ -10,20 +10,8 @@ const NAV = [
   { to: "/metrics", label: "Metrics" },
 ];
 
-export function initialsOf(name?: string | null) {
-  if (!name) return "··";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 /** The design's four-item top nav: Library · Shelves · Discover · Metrics. */
 export function TopNav() {
-  const { user } = useAuth();
   const { data: invites } = usePendingInvites();
   const waiting = invites?.length ?? 0;
 
@@ -78,13 +66,7 @@ export function TopNav() {
             )}
           </NavLink>
 
-          <Link
-            to="/settings"
-            title={user?.name ?? "Account"}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[0.7rem] font-medium text-accent-foreground"
-          >
-            {initialsOf(user?.name)}
-          </Link>
+          <UserMenu />
         </div>
       </div>
     </header>

@@ -1,6 +1,5 @@
 import { Link, Outlet } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { initialsOf } from "../components/layout/TopNav";
+import { UserMenu } from "../components/layout/UserMenu";
 
 /**
  * Design E17 — "note the reduced nav". A shared shelf is the contributor's whole
@@ -9,8 +8,6 @@ import { initialsOf } from "../components/layout/TopNav";
  * made visible.
  */
 export function SharedLayout() {
-  const { user } = useAuth();
-
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border/70 bg-card/70 backdrop-blur">
@@ -23,9 +20,7 @@ export function SharedLayout() {
             <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
               Contributor view
             </span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[0.7rem] font-medium text-accent-foreground">
-              {initialsOf(user?.name)}
-            </span>
+            <UserMenu />
           </div>
         </div>
       </header>
