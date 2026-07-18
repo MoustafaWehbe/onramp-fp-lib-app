@@ -55,6 +55,19 @@ export const adminController = {
     }
   },
 
+  async auditLog(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const entries = await adminService.auditLog();
+      res.json({ data: entries });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async stats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await adminService.stats();

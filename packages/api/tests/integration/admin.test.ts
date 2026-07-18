@@ -14,6 +14,7 @@ function getCookie(res: Response, name: string): string | undefined {
 }
 
 async function resetDb() {
+  await prisma.adminAuditLog.deleteMany();
   await prisma.discoveryReport.deleteMany();
   await prisma.journalEntry.deleteMany();
   await prisma.book.deleteMany();
@@ -173,5 +174,30 @@ describe("admin account management + aggregates", () => {
       .set("Cookie", adminCookie);
     expect(del.status).toBe(204);
     expect(await prisma.book.count({ where: { userId: readerId } })).toBe(0);
+  });
+
+  it("records admin actions in the audit log, surviving the target's deletion", async () => {
+    const res = await request(app)
+      .get("/api/admin/audit")
+      .set("Cookie", adminCookie);
+    expect(res.status).toBe(200);
+
+    const actions = res.body.data.map((e: { action: string }) => e.action);
+    expect(actions).toContain("user.update"); // the emailVerified toggle
+    expect(actions).toContain("user.delete");
+
+    const deletion = res.body.data.find(
+      (e: { action: string }) => e.action === "user.delete",
+    );
+    // Denormalized emails: the entry outlives the deleted account.
+    expect(deletion.actorEmail).toBe("boss@example.com");
+    expect(deletion.targetEmail).toBe("reader@example.com");
+
+    // The deleted reader's access token is stateless and outlives the account
+    // until expiry, so authenticate passes — authorize still rejects on role.
+    const asReader = await request(app)
+      .get("/api/admin/audit")
+      .set("Cookie", readerCookie);
+    expect(asReader.status).toBe(403);
   });
 });

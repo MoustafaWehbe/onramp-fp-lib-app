@@ -21,6 +21,27 @@ export interface AdminStats {
   cohorts: { cohort: string; accounts: number; avgBooks: number }[];
 }
 
+export interface AuditEntry {
+  id: string;
+  actorEmail: string;
+  action: string;
+  targetEmail: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
+export function useAuditLog() {
+  return useQuery({
+    queryKey: ["admin-audit"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: AuditEntry[] }>(
+        "/admin/audit",
+      );
+      return data.data;
+    },
+  });
+}
+
 export function useAdminStats() {
   return useQuery({
     queryKey: ["admin-stats"],
@@ -65,6 +86,7 @@ export function useUpdateAccount() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
     },
   });
 }
@@ -78,6 +100,7 @@ export function useDeleteAccount() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
     },
   });
 }

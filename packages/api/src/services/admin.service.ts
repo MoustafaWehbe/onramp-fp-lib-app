@@ -41,21 +41,78 @@ export const adminService = {
     if (id === actingAdminId && input.role === "user") {
       throw createError("You can't demote your own account", 400);
     }
-    await this.getUser(id);
-    return prisma.user.update({
+    const target = await this.getUser(id);
+    const updated = await prisma.user.update({
       where: { id },
       data: { role: input.role, emailVerified: input.emailVerified },
       select: accountFields,
     });
+
+    const changes: string[] = [];
+    if (input.role !== undefined && input.role !== target.role) {
+      changes.push(`role ${target.role} -> ${input.role}`);
+    }
+    if (
+      input.emailVerified !== undefined &&
+      input.emailVerified !== target.emailVerified
+    ) {
+      changes.push(`emailVerified -> ${input.emailVerified}`);
+    }
+    if (changes.length > 0) {
+      await this.audit(actingAdminId, "user.update", target.email, changes.join(", "));
+    }
+    return updated;
   },
 
   async deleteUser(actingAdminId: string, id: string) {
     if (id === actingAdminId) {
       throw createError("You can't delete your own account", 400);
     }
-    await this.getUser(id);
+    const target = await this.getUser(id);
     // Books, shelves, journals, sessions all cascade with the user.
     await prisma.user.delete({ where: { id } });
+    await this.audit(
+      actingAdminId,
+      "user.delete",
+      target.email,
+      `account and all reading data removed (${target._count.books} books)`,
+    );
+  },
+
+  /** The F18 audit log, newest first. */
+  async auditLog() {
+    return prisma.adminAuditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  },
+
+  /**
+   * Record an admin action. Best-effort by design: audit writes must never
+   * turn a succeeded action into a 500 for the caller.
+   */
+  async audit(
+    actorId: string,
+    action: string,
+    targetEmail: string | null,
+    detail: string,
+  ) {
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: actorId },
+        select: { email: true },
+      });
+      await prisma.adminAuditLog.create({
+        data: {
+          actorEmail: actor?.email ?? "unknown",
+          action,
+          targetEmail,
+          detail,
+        },
+      });
+    } catch (err) {
+      console.error("[admin] audit write failed:", err);
+    }
   },
 
   /** The F18 overview: real aggregates only, nothing invented. */

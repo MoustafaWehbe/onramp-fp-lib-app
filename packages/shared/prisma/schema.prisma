@@ -164,6 +164,21 @@ model Shelf {
   @@map("shelves")
 }
 
+/// Every admin action, for the F18 audit log. Deliberately NOT a relation to
+/// User: the log must survive the actor's or target's account being deleted,
+/// so it stores denormalized emails instead of foreign keys.
+model AdminAuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorEmail  String   @map("actor_email")
+  action      String // e.g. "user.role.change", "user.delete"
+  targetEmail String?  @map("target_email")
+  detail      String? // human-readable summary of what changed
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("admin_audit_log")
+}
+
 /// Explicit Book<->Shelf join. An implicit m2m can't record who put a book on a
 /// shelf, which a shared shelf needs in order to show "added by Maya".
 model BookOnShelf {

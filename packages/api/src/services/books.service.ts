@@ -1,4 +1,4 @@
-import { getPrisma } from "@starter-kit/shared";
+import { getPrisma, embeddingsQueue } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
 import type {
   CreateBookInput,
@@ -8,6 +8,26 @@ import type {
 } from "../schemas/books.schemas";
 
 const prisma = getPrisma();
+
+/**
+ * Queue a re-embed of a finished, journaled book (the worker re-checks both
+ * conditions before writing). Enqueueing is best-effort: the reader's write
+ * must not fail because Redis is briefly unreachable — the embedding can be
+ * rebuilt on the next journal save or taste-profile refresh.
+ */
+async function enqueueBookEmbedding(bookId: string): Promise<void> {
+  try {
+    await embeddingsQueue.add("embed-book", {
+      entityType: "book",
+      entityId: bookId,
+    });
+  } catch (err) {
+    console.error(
+      `[books] failed to enqueue embedding for book:${bookId}`,
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
 
 /** True for a Prisma unique-constraint violation (duplicate row). */
 function isUniqueViolation(err: unknown): boolean {
@@ -83,9 +103,25 @@ export const booksService = {
   },
 
   async update(userId: string, id: string, input: UpdateBookInput) {
-    await this.getOwned(userId, id);
+    const before = await this.getOwned(userId, id);
     try {
-      return await prisma.book.update({ where: { id }, data: input });
+      const book = await prisma.book.update({
+        where: { id },
+        data: input,
+        include: { journalEntry: { select: { id: true } } },
+      });
+      // Re-finish path: a book moved back to FINISHED that already has a
+      // journal entry should refresh its embedding (title/genre may also have
+      // changed, and those feed the embedded text).
+      if (
+        book.status === "FINISHED" &&
+        before.status !== "FINISHED" &&
+        book.journalEntry
+      ) {
+        await enqueueBookEmbedding(book.id);
+      }
+      const { journalEntry: _journalEntry, ...rest } = book;
+      return rest;
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw createError("This book is already in your library", 409);
@@ -114,7 +150,7 @@ export const booksService = {
     }
 
     const quotes = input.favoriteQuotes ?? [];
-    return prisma.journalEntry.upsert({
+    const entry = await prisma.journalEntry.upsert({
       where: { bookId },
       create: {
         bookId,
@@ -129,5 +165,12 @@ export const booksService = {
         rating: input.rating ?? null,
       },
     });
+
+    // The reflection is the heart of the embedded text, so every journal save
+    // (re)queues the book's embedding. This is THE trigger that feeds the AI
+    // pipeline: finished + journaled -> BookEmbedding -> taste profile.
+    await enqueueBookEmbedding(bookId);
+
+    return entry;
   },
 };
