@@ -7,9 +7,9 @@ A full-stack TypeScript monorepo with everything pre-configured so you can focus
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18, Vite, Tailwind CSS, shadcn/ui |
-| Backend | Express, Sequelize, Zod |
+| Backend | Express, Prisma, Zod |
 | Background Jobs | BullMQ, Redis |
-| Database | PostgreSQL |
+| Database | PostgreSQL 16 + pgvector |
 | Monorepo | Turborepo |
 | Language | TypeScript (everywhere) |
 
@@ -36,11 +36,18 @@ packages/
 npm install
 ```
 
+This also generates the Prisma client (a `postinstall` hook). Nothing imports
+`@prisma/client` successfully until that has run, so don't skip it with
+`--ignore-scripts`.
+
 ### 3. Start infrastructure
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+Brings up PostgreSQL (with pgvector) and Redis. On the very first run this also
+creates the `starter_kit_test` database the integration tests use.
 
 ### 4. Configure environment
 
@@ -49,13 +56,17 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
+`DATABASE_URL` must be set before the next step.
+
 ### 5. Run database migrations
 
 ```bash
-cd packages/api
-npx sequelize-cli db:migrate
-npx sequelize-cli db:seed:all   # optional sample data
+npm run db:deploy --workspace @starter-kit/shared   # apply migrations
+npm run db:seed   --workspace @starter-kit/shared   # optional: seeds an admin user
 ```
+
+Use `db:migrate` instead of `db:deploy` when you're authoring a new migration.
+The seed reads `ADMIN_PASSWORD` from the environment and warns if it's unset.
 
 ### 6. Start development servers
 
@@ -86,12 +97,29 @@ See `.env.example` for all required variables.
 
 ```bash
 npm run test              # Run all tests
-cd packages/api && npm test  # API unit tests (Jest)
+cd packages/api && npm test  # API tests (Jest)
 cd packages/web && npm test  # Web tests (Vitest)
+```
+
+The API integration tests run against a real `starter_kit_test` database, so
+Docker must be up. Apply migrations to it once:
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/starter_kit_test \
+  npm run db:deploy --workspace @starter-kit/shared
+```
+
+If you created your Postgres volume before `starter_kit_test` was added to
+`docker/postgres/init.sql`, that script won't re-run — create the database by
+hand once:
+
+```bash
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE starter_kit_test;"
 ```
 
 ## Docker
 
 The `docker-compose.yml` starts:
-- **PostgreSQL 16** on port `5432`
+- **PostgreSQL 16 with pgvector** (`pgvector/pgvector:pg16`) on port `5432` —
+  the plain `postgres:16` image can't satisfy `CREATE EXTENSION vector`
 - **Redis 7** on port `6379`
