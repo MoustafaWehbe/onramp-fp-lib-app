@@ -137,7 +137,7 @@ export function Library() {
       {isLoading ? (
         <BookGridShimmer />
       ) : books && books.length > 0 ? (
-        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {books.map((book) => (
             <BookCard key={book.id} book={book} />
           ))}

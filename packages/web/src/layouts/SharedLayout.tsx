@@ -10,12 +10,14 @@ import { UserMenu } from "../components/layout/UserMenu";
 export function SharedLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border/70 bg-card/70 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-6">
-          <Link to="/library" className="font-display text-xl italic text-primary">
+      <header className="border-b border-border/70 bg-background">
+        <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-6 px-12">
+          <Link to="/library" className="font-display text-xl italic text-foreground">
             Folio
           </Link>
-          <span className="text-sm text-foreground">Shared with you</span>
+          <span className="flex h-16 items-center border-b-2 border-primary text-sm font-semibold text-foreground">
+            Shared with you
+          </span>
           <div className="ml-auto flex items-center gap-3">
             <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
               Contributor view
@@ -25,7 +27,7 @@ export function SharedLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-[84rem] flex-1 px-12 py-10">
         <Outlet />
       </main>
     </div>

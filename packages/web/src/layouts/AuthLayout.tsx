@@ -5,31 +5,32 @@ import { cn } from "../lib/utils";
 export function AuthLayout() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
-      <aside className="hidden flex-col justify-between border-r border-border/70 bg-card p-12 lg:flex">
-        <Link to="/" className="font-display text-2xl italic text-primary">
+      {/* Design A2: the promise panel is ink-dark, cream type on #221D16. */}
+      <aside className="hidden flex-col justify-between bg-foreground p-12 text-[#F5EFE3] lg:flex">
+        <Link to="/" className="font-display text-2xl italic">
           Folio
         </Link>
 
-        <blockquote className="max-w-md">
-          <p className="font-display text-[1.75rem] leading-relaxed text-foreground">
+        <blockquote className="max-w-md space-y-5">
+          <p className="font-display text-[2.125rem] italic leading-[1.35]">
             “The library you keep for yourself is the truest record of who you
             are.”
           </p>
+          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[#B4A896]">
+            A private reading journal
+          </p>
         </blockquote>
 
-        <div className="space-y-1">
-          <p className="text-sm text-foreground">A private reading journal</p>
-          <p className="text-xs text-muted-foreground">
-            No feeds · No followers · No public profiles
-          </p>
-        </div>
+        <p className="text-[0.8rem] text-[#8A7E6E]">
+          No feeds · No followers · No public profiles
+        </p>
       </aside>
 
       <main className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
           <Link
             to="/"
-            className="block font-display text-2xl italic text-primary lg:hidden"
+            className="block font-display text-2xl italic text-foreground lg:hidden"
           >
             Folio
           </Link>

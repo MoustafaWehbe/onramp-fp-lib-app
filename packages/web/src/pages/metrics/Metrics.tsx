@@ -4,6 +4,9 @@ import { Shimmer } from "../../components/folio/Shimmer";
 import { Link } from "react-router-dom";
 import { buttonVariants } from "../../components/ui/button";
 
+/** Design C12 categorical palette — terracotta first, then the muted set. */
+const DONUT_COLORS = ["#A34E2C", "#3E5C46", "#39424E", "#8A7A45", "#D9CFBC"];
+
 function monthLabel(iso: string) {
   const [y, m] = iso.split("-");
   const date = new Date(Number(y), Number(m) - 1, 1);
@@ -45,6 +48,22 @@ export function Metrics() {
       />
     );
   }
+
+  // Top four genres get their own segment; the tail folds into "Everything else".
+  const sortedGenres = [...data.genreBreakdown].sort((a, b) => b.count - a.count);
+  const restCount = sortedGenres.slice(4).reduce((sum, g) => sum + g.count, 0);
+  const segments =
+    restCount > 0
+      ? [...sortedGenres.slice(0, 4), { genre: "Everything else", count: restCount }]
+      : sortedGenres.slice(0, 4);
+  let acc = 0;
+  const donutStops = segments
+    .map((s, i) => {
+      const from = acc;
+      acc += (s.count / Math.max(1, totalGenre)) * 100;
+      return `${DONUT_COLORS[i]} ${from}% ${acc}%`;
+    })
+    .join(", ");
 
   return (
     <div className="space-y-10">
@@ -128,28 +147,42 @@ export function Metrics() {
         )}
       </section>
 
-      <section className="space-y-4 rounded-[var(--radius)] border border-border bg-card p-5">
-        <h2 className="font-display text-lg text-foreground">Where you read</h2>
-        <div className="space-y-3">
-          {data.genreBreakdown.map((g) => {
-            const pct = Math.round((g.count / totalGenre) * 100);
-            return (
-              <div key={g.genre} className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-foreground">{g.genre}</span>
-                  <span className="font-mono text-muted-foreground">{pct}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary/70"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+      {totalGenre > 0 && (
+        <section className="space-y-5 rounded-xl border border-border bg-card p-7">
+          <h2 className="font-display text-xl text-foreground">Where you read</h2>
+          <div className="flex flex-wrap items-center gap-7">
+            <div
+              className="flex h-[150px] w-[150px] flex-shrink-0 items-center justify-center rounded-full"
+              style={{ background: `conic-gradient(${donutStops})` }}
+              role="img"
+              aria-label="Share of finished books by genre"
+            >
+              <div className="flex h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-card">
+                <span className="font-display text-[1.35rem] text-foreground">
+                  {Math.round((segments[0].count / totalGenre) * 100)}%
+                </span>
+                <span className="max-w-[80px] truncate px-1 text-[0.6rem] uppercase tracking-[0.08em] text-muted-foreground">
+                  {segments[0].genre}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </section>
+            </div>
+            <div className="space-y-2.5">
+              {segments.map((s, i) => (
+                <div key={s.genre} className="flex items-center gap-2.5 text-sm">
+                  <span
+                    className="h-2.5 w-2.5 rounded-[2px]"
+                    style={{ backgroundColor: DONUT_COLORS[i] }}
+                  />
+                  <span className="font-medium text-foreground">{s.genre}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round((s.count / totalGenre) * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <p className="text-center text-xs text-muted-foreground">
         These numbers are for you alone — Folio never publishes reading stats.

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useDiscoveryReports, useGenerateReport } from "../../hooks/useDiscovery";
-import { useBooks } from "../../hooks/useBooks";
+import { useBooks, useCreateBook } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { BookCover } from "../../components/folio/BookCover";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { Link } from "react-router-dom";
 import { buttonVariants } from "../../components/ui/button";
+import type { DiscoveryItem } from "../../lib/types";
 
 const MOOD_EXAMPLES = [
   "something melancholic, under 300 pages",
@@ -25,6 +27,12 @@ export function Discover() {
   const [mood, setMood] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const createBook = useCreateBook();
+  // Per-recommendation UI state, keyed by rank within the visible report.
+  const [itemState, setItemState] = useState<
+    Record<number, "added" | "inLibrary" | "dismissed">
+  >({});
+
   // Show the freshly generated report if there is one, otherwise the last one
   // we stored — so a report survives a refresh (design D13, "Last report").
   const report = generate.data ?? history?.[0];
@@ -36,10 +44,31 @@ export function Discover() {
     setMoodOpen(false);
     try {
       await generate.mutateAsync(withMood?.trim() || undefined);
+      setItemState({});
     } catch {
       setError(
         "Couldn't build a report. The model may be unreachable, or you may not have enough finished books yet.",
       );
+    }
+  }
+
+  async function wantToRead(item: DiscoveryItem) {
+    setError(null);
+    try {
+      await createBook.mutateAsync({
+        title: item.title,
+        author: item.author,
+        status: "WANT_TO_READ",
+      });
+      setItemState((s) => ({ ...s, [item.rank]: "added" }));
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response
+        ?.status;
+      if (status === 409) {
+        setItemState((s) => ({ ...s, [item.rank]: "inLibrary" }));
+      } else {
+        setError("Couldn't add that book to your library.");
+      }
     }
   }
 
@@ -60,12 +89,17 @@ export function Discover() {
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2rem] leading-tight text-foreground">
+        <div className="max-w-xl space-y-2">
+          <p className="text-[0.7rem] uppercase tracking-[0.18em] text-primary">
             Taste discovery
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          </p>
+          <h1 className="font-display text-[2rem] leading-tight text-foreground">
             Recommendations from your own shelf.
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Folio reads your library — what you finished, what you abandoned,
+            what you rated five stars — and suggests three books at a time. No
+            trends, no bestseller lists, no one else’s data.
           </p>
         </div>
         <div className="flex gap-2">
@@ -173,35 +207,68 @@ export function Discover() {
             )}
           </div>
 
-          <div className="space-y-4">
-            {report.items.map((item) => (
-              <article
-                key={item.rank}
-                className="rounded-[var(--radius)] border border-border bg-card p-5"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="font-mono text-sm text-primary">
-                    {item.rank}
-                  </span>
-                  <div>
-                    <h3 className="font-display text-lg text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {item.author}
-                    </p>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {report.items
+              .filter((item) => itemState[item.rank] !== "dismissed")
+              .map((item) => (
+                <article
+                  key={item.rank}
+                  className="flex flex-col overflow-hidden rounded-xl border border-border bg-card"
+                >
+                  <div className="flex items-start gap-5 border-b border-border/60 p-6">
+                    <div className="w-16 flex-shrink-0" aria-hidden="true">
+                      <BookCover title={item.title} author={item.author} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+                        The match
+                      </p>
+                      <h3 className="font-display text-xl leading-snug text-foreground">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {item.author}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 space-y-1">
-                  <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-                    The why
-                  </p>
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {item.rationale}
-                  </p>
-                </div>
-              </article>
-            ))}
+                  <div className="flex flex-1 flex-col gap-3 p-6">
+                    <p className="text-[0.65rem] uppercase tracking-[0.14em] text-primary">
+                      The why
+                    </p>
+                    <blockquote className="border-l-2 border-primary pl-4 font-display italic leading-relaxed text-foreground">
+                      {item.rationale}
+                    </blockquote>
+                    <div className="flex-1" />
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={() => wantToRead(item)}
+                        disabled={
+                          !!itemState[item.rank] || createBook.isPending
+                        }
+                      >
+                        {itemState[item.rank] === "added"
+                          ? "Added ✓"
+                          : itemState[item.rank] === "inLibrary"
+                            ? "Already in your library"
+                            : "Want to read"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setItemState((s) => ({
+                            ...s,
+                            [item.rank]: "dismissed",
+                          }))
+                        }
+                      >
+                        Not for me
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
           </div>
         </section>
       )}

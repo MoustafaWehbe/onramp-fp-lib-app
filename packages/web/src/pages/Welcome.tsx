@@ -30,7 +30,7 @@ export function Welcome() {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex h-16 max-w-6xl items-center px-6">
-        <span className="font-display text-xl italic text-primary">Folio</span>
+        <span className="font-display text-xl italic text-foreground">Folio</span>
         <div className="ml-auto flex items-center gap-3">
           <Link
             to="/login"
@@ -47,7 +47,7 @@ export function Welcome() {
       <main className="mx-auto max-w-6xl px-6">
         <section className="grid items-center gap-12 py-16 lg:grid-cols-[1.1fr_1fr] lg:py-24">
           <div className="space-y-6">
-            <p className="text-[0.7rem] uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="text-[0.7rem] uppercase tracking-[0.2em] text-primary">
               Private by design
             </p>
             <h1 className="font-display text-[2.75rem] leading-[1.1] text-foreground sm:text-[3.25rem]">

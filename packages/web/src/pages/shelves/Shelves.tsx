@@ -7,6 +7,38 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 
+function updatedAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "updated today";
+  if (days === 1) return "updated yesterday";
+  if (days < 31) return `updated ${days} days ago`;
+  const months = Math.floor(days / 30);
+  return `updated ${months === 1 ? "a month" : `${months} months`} ago`;
+}
+
+/** Decorative spine colours from the design's cover palette (real count, fake titles). */
+const SPINES = ["#41553F", "#7A3B2E", "#39424E", "#5E4B3B", "#8C5A3C"];
+
+function SpineStack({ seed, count }: { seed: string; count: number }) {
+  const n = Math.min(count, 5);
+  if (n === 0) return null;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return (
+    <div className="flex items-end pl-3.5" aria-hidden="true">
+      {Array.from({ length: n }).map((_, i) => (
+        <div
+          key={i}
+          className="-ml-3.5 h-[66px] w-11 rounded-[2px] border-l border-white/15 shadow-[-6px_0_10px_-4px_rgba(40,30,15,0.35)]"
+          style={{ backgroundColor: SPINES[(hash + i) % SPINES.length] }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Design C9 — the custom shelf list, with C10's create form inline. */
 export function Shelves() {
   const { data: shelves, isLoading } = useShelves();
@@ -98,41 +130,60 @@ export function Shelves() {
       )}
 
       {isLoading ? (
-        <div className="space-y-3">
-          <Shimmer className="h-24 w-full" />
-          <Shimmer className="h-24 w-full" />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Shimmer className="h-36 w-full" />
+          <Shimmer className="h-36 w-full" />
         </div>
       ) : shelves && shelves.length > 0 ? (
-        <div className="space-y-3">
+        <div className="grid gap-6 sm:grid-cols-2">
           {shelves.map((shelf) => (
             <Link
               key={shelf.id}
               to={`/shelves/${shelf.id}`}
-              className="block rounded-[var(--radius)] border border-border bg-card p-5 transition-colors hover:border-primary/40"
+              className="flex justify-between gap-6 rounded-xl border border-border bg-card p-7 transition-shadow hover:shadow-[0_14px_28px_-12px_rgba(60,45,25,0.28)]"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <h2 className="font-display text-lg text-foreground">
-                    {shelf.name}
-                  </h2>
+              <div className="flex flex-col justify-between gap-3">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h2 className="font-display text-[1.4rem] leading-snug text-foreground">
+                      {shelf.name}
+                    </h2>
+                    {(shelf._count?.shares ?? 0) > 0 && (
+                      <span className="rounded-full bg-accent px-2.5 py-0.5 text-[0.7rem] font-semibold text-accent-foreground">
+                        Shared
+                      </span>
+                    )}
+                  </div>
                   {shelf.description && (
                     <p className="text-sm text-muted-foreground">
                       {shelf.description}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {shelf._count?.books ?? 0}{" "}
-                    {shelf._count?.books === 1 ? "book" : "books"}
-                  </p>
                 </div>
-                {(shelf._count?.shares ?? 0) > 0 && (
-                  <span className="rounded-full bg-accent px-2.5 py-0.5 text-[0.7rem] text-accent-foreground">
-                    Shared
-                  </span>
-                )}
+                <p className="text-xs font-medium text-muted-foreground">
+                  {shelf._count?.books ?? 0}{" "}
+                  {shelf._count?.books === 1 ? "book" : "books"} ·{" "}
+                  {updatedAgo(shelf.updatedAt)}
+                </p>
               </div>
+              <SpineStack seed={shelf.id} count={shelf._count?.books ?? 0} />
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex min-h-[9rem] flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-border p-7 text-center transition-colors hover:bg-card/60"
+          >
+            <span className="font-display text-3xl font-light text-muted-foreground/70">
+              +
+            </span>
+            <span className="text-[0.9rem] font-medium text-muted-foreground">
+              Create a shelf
+            </span>
+            <span className="text-xs text-muted-foreground/80">
+              “Winter comforts”, “Lent to friends”, “To re-read”…
+            </span>
+          </button>
         </div>
       ) : (
         <EmptyState

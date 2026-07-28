@@ -16,26 +16,26 @@ export function TopNav() {
   const waiting = invites?.length ?? 0;
 
   return (
-    <header className="border-b border-border/70 bg-card/70 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-8 px-6">
+    <header className="border-b border-border/70 bg-background">
+      <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-8 px-12">
         <Link
           to="/library"
-          className="font-display text-xl italic text-primary"
+          className="font-display text-xl italic text-foreground"
         >
           Folio
         </Link>
 
-        <nav className="flex items-center gap-6">
+        <nav className="flex h-16 items-stretch gap-7">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "text-sm transition-colors",
+                  "flex items-center border-b-2 text-sm transition-colors",
                   isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "border-primary font-semibold text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )
               }
             >

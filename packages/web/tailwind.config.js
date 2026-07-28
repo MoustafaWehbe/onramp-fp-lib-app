@@ -35,9 +35,9 @@ export default {
         },
         // Reading-lifecycle accents (design §0, "Lifecycle states").
         lifecycle: {
-          want: "#8A7E6E",
-          reading: "#3E5C46",
-          finished: "#A34E2C",
+          want: "#8A7A45",
+          reading: "#A34E2C",
+          finished: "#3E5C46",
           abandoned: "#9A9086",
         },
       },
@@ -52,6 +52,15 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "-500px 0" },
+          "100%": { backgroundPosition: "500px 0" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.6s linear infinite",
       },
     },
   },
