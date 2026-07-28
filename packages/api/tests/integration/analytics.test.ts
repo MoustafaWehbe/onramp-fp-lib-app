@@ -1,12 +1,7 @@
 import request from "supertest";
 import type { Response } from "supertest";
 import { app } from "../../app";
-import {
-  getPrisma,
-  emailQueue,
-  embeddingsQueue,
-  getRedisConnection,
-} from "@starter-kit/shared";
+import { getPrisma } from "@starter-kit/shared";
 
 const prisma = getPrisma();
 
@@ -76,9 +71,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await resetDb();
   await prisma.$disconnect();
-  await emailQueue.close();
-  await embeddingsQueue.close();
-  await getRedisConnection().quit();
+  // Shared BullMQ/Redis handles are closed once per file by tests/teardown.ts.
 });
 
 describe("Analytics summary (integration, real database)", () => {
