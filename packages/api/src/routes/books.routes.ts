@@ -1,18 +1,29 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authenticate";
-import { notImplemented } from "../lib/not-implemented";
+import { validate } from "../middleware/validate";
+import { booksController } from "../controllers/books.controller";
+import {
+  createBookSchema,
+  updateBookSchema,
+  listBooksQuerySchema,
+  journalEntrySchema,
+} from "../schemas/books.schemas";
 
-// Owner-scoped: every route requires an authenticated user. Ownership checks
-// (book.userId === req.user.userId) belong in the handlers, which are stubs.
+// Owner-scoped: every route requires an authenticated user; the handlers enforce
+// that the book belongs to req.user.
 const router = Router();
 router.use(authenticate);
 
-router.get("/", notImplemented);
-router.post("/", notImplemented);
-router.get("/:id", notImplemented);
-router.patch("/:id", notImplemented);
-router.delete("/:id", notImplemented);
-router.get("/:id/journal", notImplemented);
-router.put("/:id/journal", notImplemented);
+router.get("/", validate(listBooksQuerySchema, "query"), booksController.list);
+router.post("/", validate(createBookSchema), booksController.create);
+router.get("/:id", booksController.get);
+router.patch("/:id", validate(updateBookSchema), booksController.update);
+router.delete("/:id", booksController.remove);
+router.get("/:id/journal", booksController.getJournal);
+router.put(
+  "/:id/journal",
+  validate(journalEntrySchema),
+  booksController.putJournal,
+);
 
 export { router as booksRouter };

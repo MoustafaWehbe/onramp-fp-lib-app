@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authenticate";
-import { notImplemented } from "../lib/not-implemented";
+import { analyticsController } from "../controllers/analytics.controller";
 
-// Owner-scoped reading analytics.
+// Owner-scoped reading analytics (the requesting user's own data only).
 const router = Router();
 router.use(authenticate);
 
-router.get("/", notImplemented);
+router.get("/summary", analyticsController.summary);
 
 export { router as analyticsRouter };

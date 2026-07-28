@@ -5,6 +5,7 @@ import {
   generateTokenPair,
   verifyRefreshToken,
   getPrisma,
+  Prisma,
   type UserRole,
 } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
@@ -46,20 +47,33 @@ export class AuthService {
     }
 
     const passwordHash = await hashPassword(input.password);
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        passwordHash,
-        name: input.name,
-      },
-    });
+    try {
+      const user = await prisma.user.create({
+        data: {
+          email: input.email,
+          passwordHash,
+          name: input.name,
+        },
+      });
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as UserRole,
-    };
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role as UserRole,
+      };
+    } catch (err) {
+      // A concurrent registration can win the race between the check above and
+      // this create, surfacing as a unique-constraint violation (P2002). Map it
+      // to the same 409 as the pre-check instead of a 500.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        throw createError("Email already in use", 409);
+      }
+      throw err;
+    }
   }
 
   async login(input: LoginInput) {
@@ -135,12 +149,8 @@ export class AuthService {
     });
     if (!user) throw createError("User not found", 404);
 
-    // Rotate token: revoke the old one, issue a fresh pair.
-    await prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
-    });
-
+    // Validate the session BEFORE revoking anything, so a missing session never
+    // burns a still-valid token.
     const session = await prisma.session.findUnique({
       where: { id: stored.sessionId },
     });
@@ -157,14 +167,24 @@ export class AuthService {
       .createHash("sha256")
       .update(tokens.refreshToken)
       .digest("hex");
-    await prisma.refreshToken.create({
-      data: {
-        userId: user.id,
-        sessionId: session.id,
-        tokenHash: newHash,
-        expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
-      },
-    });
+
+    // Rotate atomically: revoke the old token and create the replacement in one
+    // transaction so a mid-rotation failure can't leave the user with no valid
+    // refresh token.
+    await prisma.$transaction([
+      prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      }),
+      prisma.refreshToken.create({
+        data: {
+          userId: user.id,
+          sessionId: session.id,
+          tokenHash: newHash,
+          expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
+        },
+      }),
+    ]);
 
     return tokens;
   }
