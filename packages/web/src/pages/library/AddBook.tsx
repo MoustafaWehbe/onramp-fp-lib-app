@@ -1,17 +1,26 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCreateBook } from "../../hooks/useBooks";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useBook, useBooks, useCreateBook, useUpdateBook } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { BookCover } from "../../components/folio/BookCover";
-import { READING_STATUSES, STATUS_LABEL, type ReadingStatus } from "../../lib/types";
+import { READING_STATUSES, STATUS_LABEL, STATUS_DOT, type ReadingStatus } from "../../lib/types";
 import { cn } from "../../lib/utils";
 
-/** Design B6 — manual entry. Cover is optional; a typographic one is generated. */
+/**
+ * Design B6 — "Add / Edit Book". One form, two modes: /books/new creates,
+ * /books/:id/edit hydrates the same fields and PATCHes. Cover is optional;
+ * a typographic one is generated otherwise.
+ */
 export function AddBook() {
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
   const createBook = useCreateBook();
+  const updateBook = useUpdateBook();
+  const { data: existing } = useBook(isEdit ? id : undefined);
+  const { data: allBooks } = useBooks({});
 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -22,28 +31,52 @@ export function AddBook() {
   const [status, setStatus] = useState<ReadingStatus>("WANT_TO_READ");
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = title.trim() !== "" && author.trim() !== "";
+  // Hydrate once when editing.
+  useEffect(() => {
+    if (existing) {
+      setTitle(existing.title);
+      setAuthor(existing.author);
+      setGenre(existing.genre ?? "");
+      setYear(existing.year ? String(existing.year) : "");
+      setPageCount(existing.pageCount ? String(existing.pageCount) : "");
+      setCoverImage(existing.coverImage ?? "");
+      setStatus(existing.status);
+    }
+  }, [existing]);
+
+  // Genre suggestions from the library, matching the design's dropdown affordance.
+  const knownGenres = [
+    ...new Set((allBooks ?? []).map((b) => b.genre).filter(Boolean)),
+  ].sort() as string[];
+
+  const pending = createBook.isPending || updateBook.isPending;
+  const canSubmit = title.trim() !== "" && author.trim() !== "" && !pending;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const payload = {
+      title: title.trim(),
+      author: author.trim(),
+      genre: genre.trim() || undefined,
+      coverImage: coverImage.trim() || undefined,
+      year: year ? Number(year) : undefined,
+      pageCount: pageCount ? Number(pageCount) : undefined,
+      status,
+    };
     try {
-      const book = await createBook.mutateAsync({
-        title: title.trim(),
-        author: author.trim(),
-        genre: genre.trim() || undefined,
-        coverImage: coverImage.trim() || undefined,
-        year: year ? Number(year) : undefined,
-        pageCount: pageCount ? Number(pageCount) : undefined,
-        status,
-      });
-      navigate(`/books/${book.id}`);
+      if (isEdit && id) {
+        await updateBook.mutateAsync({ id, ...payload });
+        navigate(`/books/${id}`);
+      } else {
+        const book = await createBook.mutateAsync(payload);
+        navigate(`/books/${book.id}`);
+      }
     } catch (err) {
       // The API returns 409 when (title, author) already exists for this user.
-      const status = (err as { response?: { status?: number } }).response
-        ?.status;
+      const code = (err as { response?: { status?: number } }).response?.status;
       setError(
-        status === 409
+        code === 409
           ? "That book is already in your library."
           : "Something went wrong saving this book.",
       );
@@ -52,7 +85,9 @@ export function AddBook() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <h1 className="font-display text-[2rem] text-foreground">Add a book</h1>
+      <h1 className="font-display text-[2rem] text-foreground">
+        {isEdit ? "Edit details" : "Add a book"}
+      </h1>
 
       <form onSubmit={onSubmit} className="grid gap-8 sm:grid-cols-[180px_1fr]">
         <div className="space-y-2">
@@ -104,7 +139,13 @@ export function AddBook() {
                 onChange={(e) => setGenre(e.target.value)}
                 placeholder="Nature"
                 className="bg-card"
+                list="genre-options"
               />
+              <datalist id="genre-options">
+                {knownGenres.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="year">Year</Label>
@@ -139,12 +180,13 @@ export function AddBook() {
                   type="button"
                   onClick={() => setStatus(s)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs transition-colors",
+                    "flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
                     status === s
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-primary bg-accent text-accent-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/40",
                   )}
                 >
+                  <span className={cn("h-2 w-2 rounded-full", STATUS_DOT[s])} />
                   {STATUS_LABEL[s]}
                 </button>
               ))}
@@ -154,13 +196,17 @@ export function AddBook() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" disabled={!canSubmit || createBook.isPending}>
-              {createBook.isPending ? "Adding…" : "Add to library"}
+            <Button type="submit" disabled={!canSubmit}>
+              {pending
+                ? "Saving…"
+                : isEdit
+                  ? "Save changes"
+                  : "Add to library"}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              onClick={() => navigate("/library")}
+              onClick={() => navigate(isEdit && id ? `/books/${id}` : "/library")}
             >
               Cancel
             </Button>

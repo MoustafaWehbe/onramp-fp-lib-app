@@ -48,6 +48,11 @@ export function Library() {
     [allBooks],
   );
 
+  const authors = useMemo(
+    () => [...new Set((allBooks ?? []).map((b) => b.author))].sort(),
+    [allBooks],
+  );
+
   const clearAll = () => setFilters({ sort: filters.sort });
 
   return (
@@ -102,6 +107,18 @@ export function Library() {
           ))}
         </select>
         <select
+          value={filters.author ?? ""}
+          onChange={(e) => set({ author: e.target.value || undefined })}
+          className="h-10 rounded-[var(--radius)] border border-input bg-card px-3 text-sm"
+        >
+          <option value="">Author</option>
+          {authors.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+        <select
           value={filters.sort ?? "-createdAt"}
           onChange={(e) => set({ sort: e.target.value })}
           className="ml-auto h-10 rounded-[var(--radius)] border border-input bg-card px-3 text-sm"
@@ -146,7 +163,7 @@ export function Library() {
         // A3 — first-run empty library.
         <EmptyState
           title="Your shelf is waiting."
-          line="Every library starts with one book you meant to finish."
+          line="Add the book on your night table, or the one you finished last month. This library is yours alone — no one is watching it fill up."
           action={
             <Link to="/books/new" className={buttonVariants()}>
               + Add your first book

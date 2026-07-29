@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useJournal, useSaveJournal } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
@@ -26,6 +26,8 @@ export function Journal() {
   const [quotes, setQuotes] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // What the server last saw — so autosave only fires on real changes.
+  const lastSavedRef = useRef<string>("");
 
   // Hydrate once the existing entry arrives.
   useEffect(() => {
@@ -33,6 +35,11 @@ export function Journal() {
       setReflectionText(journal.reflectionText);
       setRating(journal.rating);
       setQuotes((journal.favoriteQuotes ?? []).join("\n"));
+      lastSavedRef.current = JSON.stringify({
+        reflectionText: journal.reflectionText,
+        rating: journal.rating,
+        quotes: (journal.favoriteQuotes ?? []).join("\n"),
+      });
     }
   }, [journal]);
 
@@ -53,6 +60,7 @@ export function Journal() {
           .filter(Boolean),
       });
       setSavedAt(new Date().toLocaleTimeString());
+      lastSavedRef.current = JSON.stringify({ reflectionText, rating, quotes });
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response
         ?.status;
@@ -75,6 +83,22 @@ export function Journal() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // "Autosaves every 30s" — but only when something actually changed, and
+  // never while a save is already in flight.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const snapshot = JSON.stringify({ reflectionText, rating, quotes });
+      if (
+        reflectionText.trim() &&
+        snapshot !== lastSavedRef.current &&
+        !saveJournal.isPending
+      ) {
+        void save();
+      }
+    }, 30_000);
+    return () => clearInterval(timer);
   });
 
   if (isLoading || !book) return <Shimmer className="h-64 w-full" />;
@@ -148,7 +172,7 @@ export function Journal() {
         />
         <div className="flex items-center justify-between text-[0.7rem] text-muted-foreground">
           <span>{words} words</span>
-          <span className="font-mono">⌘S to save</span>
+          <span className="font-mono">⌘S to save · autosaves every 30s</span>
         </div>
       </section>
 

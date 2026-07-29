@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
+import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -12,8 +14,11 @@ export function BookDetail() {
   const navigate = useNavigate();
   const { data: book, isLoading } = useBook(id);
   const { data: journal } = useJournal(id);
+  const { data: shelfInfo } = useBookShelves(id);
   const updateBook = useUpdateBook();
   const deleteBook = useDeleteBook();
+  const [addingToShelf, setAddingToShelf] = useState(false);
+  const addToShelf = useAddBookToAnyShelf();
 
   if (isLoading || !book) {
     return (
@@ -49,11 +54,20 @@ export function BookDetail() {
       </nav>
 
       <div className="grid gap-10 sm:grid-cols-[200px_1fr]">
-        <BookCover
-          title={book.title}
-          author={book.author}
-          coverImage={book.coverImage}
-        />
+        <div className="space-y-4">
+          <BookCover
+            title={book.title}
+            author={book.author}
+            coverImage={book.coverImage}
+          />
+          {/* Design B7: edit sits under the cover. */}
+          <Link
+            to={`/books/${book.id}/edit`}
+            className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+          >
+            Edit details
+          </Link>
+        </div>
 
         <div className="space-y-8">
           <div className="space-y-2">
@@ -83,6 +97,64 @@ export function BookDetail() {
                   {STATUS_LABEL[s]}
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* Design B7 — "On shelves": membership chips + add-to-shelf. */}
+          <section className="space-y-3">
+            <h2 className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+              On shelves
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              {(shelfInfo?.member ?? []).map((s) => (
+                <Link
+                  key={s.id}
+                  to={`/shelves/${s.id}`}
+                  className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground transition-colors hover:border-primary/40"
+                >
+                  {s.name}
+                </Link>
+              ))}
+              {shelfInfo && shelfInfo.member.length === 0 && !addingToShelf && (
+                <span className="text-xs text-muted-foreground">
+                  Not on any shelf yet.
+                </span>
+              )}
+              {!addingToShelf ? (
+                <button
+                  onClick={() => setAddingToShelf(true)}
+                  className="rounded-full border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                >
+                  + Add to shelf
+                </button>
+              ) : (
+                <select
+                  autoFocus
+                  defaultValue=""
+                  disabled={addToShelf.isPending}
+                  onChange={async (e) => {
+                    if (!e.target.value) return;
+                    await addToShelf.mutateAsync({
+                      shelfId: e.target.value,
+                      bookId: book.id,
+                    });
+                    setAddingToShelf(false);
+                  }}
+                  onBlur={() => setAddingToShelf(false)}
+                  className="h-8 rounded-[var(--radius)] border border-input bg-card px-2 text-xs"
+                >
+                  <option value="">Choose a shelf…</option>
+                  {(shelfInfo?.all ?? [])
+                    .filter(
+                      (s) => !shelfInfo?.member.some((m) => m.id === s.id),
+                    )
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                </select>
+              )}
             </div>
           </section>
 
