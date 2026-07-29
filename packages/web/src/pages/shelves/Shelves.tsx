@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCreateShelf, useShelves } from "../../hooks/useShelves";
+import {
+  useAddBookToAnyShelf,
+  useCreateShelf,
+  useShelves,
+} from "../../hooks/useShelves";
+import { useBooks } from "../../hooks/useBooks";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button } from "../../components/ui/button";
@@ -44,23 +49,49 @@ export function Shelves() {
   const { data: shelves, isLoading } = useShelves();
   const createShelf = useCreateShelf();
 
+  const addBook = useAddBookToAnyShelf();
+  const { data: library } = useBooks({});
+
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [bookQuery, setBookQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const shared = (shelves ?? []).filter((s) => (s._count?.shares ?? 0) > 0).length;
+
+  const candidates = (library ?? []).filter(
+    (b) =>
+      bookQuery.trim() === "" ||
+      `${b.title} ${b.author}`.toLowerCase().includes(bookQuery.toLowerCase()),
+  );
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
-      await createShelf.mutateAsync({
+      const shelf = await createShelf.mutateAsync({
         name: name.trim(),
         description: description.trim() || undefined,
       });
+      // Design C10: books picked during creation land on the new shelf.
+      for (const bookId of selected) {
+        await addBook.mutateAsync({ shelfId: shelf.id, bookId });
+      }
       setName("");
       setDescription("");
+      setSelected(new Set());
+      setBookQuery("");
       setOpen(false);
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response
@@ -119,12 +150,67 @@ export function Shelves() {
               className="bg-background"
             />
           </div>
+          {/* Design C10 — pick books while creating; they can live on many shelves. */}
+          <div className="space-y-2">
+            <Label>Add books</Label>
+            <Input
+              value={bookQuery}
+              onChange={(e) => setBookQuery(e.target.value)}
+              placeholder="Search your library…"
+              className="max-w-xs bg-background"
+            />
+            {(library ?? []).length > 0 ? (
+              <>
+                <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                  {candidates.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => toggle(b.id)}
+                      className={
+                        "flex w-full items-center justify-between gap-3 rounded-[var(--radius)] px-3 py-1.5 text-left text-sm transition-colors " +
+                        (selected.has(b.id)
+                          ? "bg-accent text-accent-foreground"
+                          : "hover:bg-accent/40")
+                      }
+                    >
+                      <span>
+                        {b.title}{" "}
+                        <span className="text-muted-foreground">
+                          · {b.author}
+                          {b.genre ? ` · ${b.genre}` : ""}
+                        </span>
+                      </span>
+                      {selected.has(b.id) && <span className="text-xs">✓</span>}
+                    </button>
+                  ))}
+                  {candidates.length === 0 && (
+                    <p className="px-3 py-1.5 text-sm text-muted-foreground">
+                      No books match that search.
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Books can live on many shelves at once.
+                  {selected.size > 0 &&
+                    ` · ${selected.size} ${selected.size === 1 ? "book" : "books"} selected`}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Your library is empty — you can add books to the shelf later.
+              </p>
+            )}
+          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             type="submit"
-            disabled={!name.trim() || createShelf.isPending}
+            disabled={!name.trim() || createShelf.isPending || addBook.isPending}
           >
-            {createShelf.isPending ? "Creating…" : "Create shelf"}
+            {createShelf.isPending || addBook.isPending
+              ? "Creating…"
+              : "Create shelf"}
           </Button>
         </form>
       )}

@@ -1,4 +1,5 @@
 import { useAnalytics } from "../../hooks/useAnalytics";
+import { useBooks } from "../../hooks/useBooks";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Link } from "react-router-dom";
@@ -13,9 +14,20 @@ function monthLabel(iso: string) {
   return date.toLocaleString(undefined, { month: "short" });
 }
 
+/** The month with the fewest finishes — only meaningful with some history. */
+function quietestMonth(velocity: { month: string; finished: number }[]) {
+  if (velocity.length < 2) return null;
+  const min = velocity.reduce((a, b) => (b.finished < a.finished ? b : a));
+  const [y, m] = min.month.split("-");
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleString(undefined, {
+    month: "long",
+  });
+}
+
 /** Design C12 — editorial reading metrics, not a BI dashboard. */
 export function Metrics() {
   const { data, isLoading } = useAnalytics();
+  const { data: reading } = useBooks({ status: "READING" });
 
   if (isLoading || !data) {
     return (
@@ -76,7 +88,7 @@ export function Metrics() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
           <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
             Books finished
@@ -84,6 +96,11 @@ export function Metrics() {
           <p className="mt-2 font-display text-4xl text-foreground">
             {data.totalFinished}
           </p>
+          {quietestMonth(data.velocity) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              your quietest month was {quietestMonth(data.velocity)}
+            </p>
+          )}
         </div>
 
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
@@ -101,6 +118,15 @@ export function Metrics() {
               </span>
             </p>
           )}
+        </div>
+
+        <div className="rounded-[var(--radius)] border border-border bg-card p-5">
+          <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+            Currently reading
+          </p>
+          <p className="mt-2 font-display text-4xl text-foreground">
+            {reading?.length ?? 0}
+          </p>
         </div>
 
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">

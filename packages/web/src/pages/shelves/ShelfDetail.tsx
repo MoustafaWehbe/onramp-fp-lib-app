@@ -4,6 +4,7 @@ import {
   useAddBookToShelf,
   useRemoveBookFromShelf,
   useShelf,
+  useUpdateShelf,
 } from "../../hooks/useShelves";
 import { useBooks } from "../../hooks/useBooks";
 import {
@@ -19,6 +20,14 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import type { AccessLevel } from "../../lib/types";
 
+/** Design E16 — "Invited 2 days ago". */
+function invitedAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "invited today";
+  if (days === 1) return "invited yesterday";
+  return `invited ${days} days ago`;
+}
+
 /** Design C11 (shelf detail) + E16 (invite a contributor, scoped to this shelf). */
 export function ShelfDetail() {
   const { id } = useParams<{ id: string }>();
@@ -31,8 +40,13 @@ export function ShelfDetail() {
   const invite = useInviteContributor(shelfId);
   const revoke = useRevokeShare(shelfId);
 
+  const updateShelf = useUpdateShelf();
   const [picking, setPicking] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [email, setEmail] = useState("");
   const [accessLevel, setAccessLevel] = useState<AccessLevel>("VIEW");
@@ -91,6 +105,17 @@ export function ShelfDetail() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditing((v) => !v);
+              setEditName(shelf.name);
+              setEditDescription(shelf.description ?? "");
+              setEditError(null);
+            }}
+          >
+            {editing ? "Cancel" : "Edit shelf"}
+          </Button>
           <Button variant="outline" onClick={() => setSharing((s) => !s)}>
             Share
           </Button>
@@ -99,6 +124,70 @@ export function ShelfDetail() {
           </Button>
         </div>
       </header>
+
+      {editing && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setEditError(null);
+            try {
+              await updateShelf.mutateAsync({
+                id: shelfId,
+                name: editName.trim(),
+                description: editDescription.trim() || undefined,
+              });
+              setEditing(false);
+            } catch (err) {
+              const status = (err as { response?: { status?: number } })
+                .response?.status;
+              setEditError(
+                status === 409
+                  ? "You already have a shelf with that name."
+                  : "Couldn't save those changes.",
+              );
+            }
+          }}
+          className="space-y-4 rounded-[var(--radius)] border border-border bg-card p-5"
+        >
+          <div className="space-y-2">
+            <label
+              htmlFor="edit-name"
+              className="text-sm font-medium text-foreground"
+            >
+              Name
+            </label>
+            <Input
+              id="edit-name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="edit-desc"
+              className="text-sm font-medium text-foreground"
+            >
+              Description{" "}
+              <span className="text-muted-foreground">(optional)</span>
+            </label>
+            <Input
+              id="edit-desc"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Light on plot, heavy on atmosphere."
+              className="bg-background"
+            />
+          </div>
+          {editError && <p className="text-sm text-destructive">{editError}</p>}
+          <Button
+            type="submit"
+            disabled={!editName.trim() || updateShelf.isPending}
+          >
+            {updateShelf.isPending ? "Saving…" : "Save changes"}
+          </Button>
+        </form>
+      )}
 
       {sharing && (
         <section className="space-y-4 rounded-[var(--radius)] border border-border bg-card p-5">
@@ -163,7 +252,7 @@ export function ShelfDetail() {
                   <span className="text-foreground">{s.user.email}</span>
                   <span className="text-xs text-muted-foreground">
                     {s.accessLevel === "WRITE" ? "Can add books" : "Can view"} ·{" "}
-                    {s.status.toLowerCase()}
+                    {invitedAgo(s.createdAt)} · {s.status.toLowerCase()}
                   </span>
                   <button
                     onClick={() => revoke.mutate(s.user.id)}
