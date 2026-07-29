@@ -72,17 +72,44 @@ export function Discover() {
     }
   }
 
-  if (!canGenerate && !report) {
+  // Design D13 empty — "five finished books is enough to start", with a real
+  // progress meter. It shows until five books are finished (or a report
+  // exists); the backend can often manage earlier, so from the first finished
+  // book a "try anyway" path stays reachable.
+  if (finishedCount < 5 && !report && !generate.isPending) {
+    const goal = 5;
     return (
-      <EmptyState
-        title="No report yet."
-        line="Finish a few books and Folio can start reading your shelf back to you."
-        action={
+      <div className="mx-auto max-w-md space-y-6 py-16 text-center">
+        <p className="font-display text-2xl text-foreground">No report yet.</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Once you've finished and rated a few books, Folio can read your taste
+          and suggest three titles at a time. Five finished books is enough to
+          start.
+        </p>
+        <div className="space-y-2">
+          <div className="mx-auto h-2 max-w-xs overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary/70 transition-all"
+              style={{
+                width: `${Math.min(100, (finishedCount / goal) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="font-mono text-xs text-muted-foreground">
+            {Math.min(finishedCount, goal)} of {goal} finished books
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
           <Link to="/library" className={buttonVariants()}>
             Go to your library
           </Link>
-        }
-      />
+          {canGenerate && (
+            <Button variant="ghost" onClick={() => run()}>
+              Try a report anyway
+            </Button>
+          )}
+        </div>
+      </div>
     );
   }
 
