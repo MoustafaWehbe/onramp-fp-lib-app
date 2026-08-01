@@ -6,6 +6,8 @@ import {
   getDiscoveryReport,
 } from "../services/discovery-report.service";
 import { generateJournalPrompts } from "../services/journal-prompts.service";
+import { buildMoodShelf } from "../services/mood-shelf.service";
+import type { MoodShelfInput } from "../schemas/ai.schemas";
 
 export const aiController = {
   async refreshTasteProfile(
@@ -45,6 +47,20 @@ export const aiController = {
         req.params.bookId as string,
       );
       res.json({ data: { prompts } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async moodShelf(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { mood, force } = req.body as MoodShelfInput;
+      const shelf = await buildMoodShelf(req.user!.userId, mood, { force });
+      res.json({ data: shelf });
     } catch (err) {
       next(err);
     }

@@ -106,6 +106,22 @@ export interface TasteProfile {
   updatedAt: string;
 }
 
+/** Design D16 — one entry on a built (not yet kept) mood shelf. */
+export interface MoodShelfItem {
+  id: string;
+  title: string;
+  author: string;
+  genre: string | null;
+  coverImage: string | null;
+  status: ReadingStatus;
+  similarity: number;
+  why: string;
+}
+
+export type MoodShelfResult =
+  | { status: "thin"; embeddedCount: number; needed: number }
+  | { status: "ok"; title: string; items: MoodShelfItem[] };
+
 export type AccessLevel = "VIEW" | "WRITE";
 export type ShareStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 

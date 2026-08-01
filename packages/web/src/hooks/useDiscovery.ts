@@ -1,6 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
-import type { DiscoveryReport, TasteProfile } from "../lib/types";
+import type {
+  DiscoveryReport,
+  MoodShelfResult,
+  TasteProfile,
+} from "../lib/types";
+
+/**
+ * Design D16 — build (not save) a mood shelf. The mood text is sent for the
+ * one build and never persisted; keeping the result goes through the ordinary
+ * shelves endpoints.
+ */
+export function useBuildMoodShelf() {
+  return useMutation({
+    mutationFn: async (input: { mood: string; force?: boolean }) => {
+      const { data } = await apiClient.post<{ data: MoodShelfResult }>(
+        "/ai/mood-shelf",
+        input,
+      );
+      return data.data;
+    },
+  });
+}
 
 /** Past reports, newest first — powers D13's "Last report". */
 export function useDiscoveryReports() {

@@ -130,6 +130,13 @@ export function Discover() {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Design D16 — the mood shelf lives beside the report generator. */}
+          <Link
+            to="/discover/mood"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Mood shelf
+          </Link>
           <Button variant="outline" onClick={() => setMoodOpen((m) => !m)}>
             Add a mood
           </Button>

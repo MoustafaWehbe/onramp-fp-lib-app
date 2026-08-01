@@ -16,6 +16,7 @@ import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
 import { Metrics } from "../pages/metrics/Metrics";
 import { Discover } from "../pages/discover/Discover";
+import { MoodShelf } from "../pages/discover/MoodShelf";
 import { SharedShelves } from "../pages/shared/SharedShelves";
 import { SharedShelfDetail } from "../pages/shared/SharedShelfDetail";
 import { Admin } from "../pages/admin/Admin";
@@ -66,6 +67,7 @@ export function AppRoutes() {
           <Route path="/shelves" element={<Shelves />} />
           <Route path="/shelves/:id" element={<ShelfDetail />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/discover/mood" element={<MoodShelf />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
