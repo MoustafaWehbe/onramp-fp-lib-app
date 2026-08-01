@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
+import { ShareBookDialog } from "../../components/folio/ShareBookDialog";
 import { SimilarBooks } from "../../components/folio/SimilarBooks";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -19,6 +20,7 @@ export function BookDetail() {
   const updateBook = useUpdateBook();
   const deleteBook = useDeleteBook();
   const [addingToShelf, setAddingToShelf] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const addToShelf = useAddBookToAnyShelf();
 
   if (isLoading || !book) {
@@ -61,13 +63,22 @@ export function BookDetail() {
             author={book.author}
             coverImage={book.coverImage}
           />
-          {/* Design B7: edit sits under the cover. */}
-          <Link
-            to={`/books/${book.id}/edit`}
-            className={cn(buttonVariants({ variant: "outline" }), "w-full")}
-          >
-            Edit details
-          </Link>
+          {/* Design B7a: edit and share sit side by side under the cover. */}
+          <div className="flex gap-2.5">
+            <Link
+              to={`/books/${book.id}/edit`}
+              className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
+            >
+              Edit details
+            </Link>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setSharing(true)}
+            >
+              Share book
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -199,6 +210,10 @@ export function BookDetail() {
 
       {/* Design B7a — full-width band under the detail grid. */}
       <SimilarBooks bookId={book.id} />
+
+      {sharing && (
+        <ShareBookDialog book={book} onClose={() => setSharing(false)} />
+      )}
     </div>
   );
 }

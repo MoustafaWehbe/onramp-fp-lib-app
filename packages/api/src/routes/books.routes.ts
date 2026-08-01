@@ -2,12 +2,14 @@ import { Router } from "express";
 import { authenticate } from "../middleware/authenticate";
 import { validate } from "../middleware/validate";
 import { booksController } from "../controllers/books.controller";
+import { bookSharesController } from "../controllers/book-shares.controller";
 import {
   createBookSchema,
   updateBookSchema,
   listBooksQuerySchema,
   journalEntrySchema,
 } from "../schemas/books.schemas";
+import { shareBookSchema } from "../schemas/shares.schemas";
 
 // Owner-scoped: every route requires an authenticated user; the handlers enforce
 // that the book belongs to req.user.
@@ -20,6 +22,13 @@ router.get("/:id", booksController.get);
 router.patch("/:id", validate(updateBookSchema), booksController.update);
 router.delete("/:id", booksController.remove);
 router.get("/:id/similar", booksController.similar);
+// Design E18 — share one book with one named person; owner-scoped.
+router.post(
+  "/:id/share",
+  validate(shareBookSchema),
+  bookSharesController.share,
+);
+router.get("/:id/shares", bookSharesController.listForBook);
 router.get("/:id/journal", booksController.getJournal);
 router.put(
   "/:id/journal",

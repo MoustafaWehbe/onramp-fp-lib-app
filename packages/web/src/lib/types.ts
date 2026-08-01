@@ -197,6 +197,35 @@ export interface Contributor {
   user: { id: string; email: string; name: string };
 }
 
+/** Design E18 — a single shared book, incoming. Metadata + sender name only. */
+export interface ReceivedBookShare {
+  shareId: string;
+  sharedAt: string;
+  sender: { id: string; name: string };
+  book: {
+    id: string;
+    title: string;
+    author: string;
+    genre: string | null;
+    coverImage: string | null;
+    year: number | null;
+    pageCount: number | null;
+  };
+}
+
+/** Design E18 — a single shared book, outgoing (who has it + Take it back). */
+export interface SentBookShare {
+  shareId: string;
+  sharedAt: string;
+  recipient: { id: string; name: string; email: string };
+  book: {
+    id: string;
+    title: string;
+    author: string;
+    coverImage: string | null;
+  };
+}
+
 /** Incoming: a shelf shared with me — metadata only, never the owner's journal. */
 export interface SharedShelf {
   shelfId: string;

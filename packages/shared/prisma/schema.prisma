@@ -78,6 +78,8 @@ model User {
   shelves          Shelf[]
   shelfShares      ShelfShare[]
   shelfBookAdds    BookOnShelf[]
+  sentBookShares     BookShare[] @relation("sentBookShares")
+  receivedBookShares BookShare[] @relation("receivedBookShares")
 
   @@map("users")
 }
@@ -134,6 +136,7 @@ model Book {
   journalEntry JournalEntry?
   embedding    BookEmbedding?
   shelves      BookOnShelf[]
+  shares       BookShare[]
 
   // Dedup: primary match on openLibraryId (books added from Open Library),
   // fallback to (title, author) for manually-entered books. Postgres allows
@@ -216,6 +219,27 @@ model ShelfShare {
   @@unique([shelfId, userId])
   @@index([userId])
   @@map("shelf_shares")
+}
+
+/// Design E18: share ONE book with one named person. The privacy boundary is
+/// structural — the recipient projection carries catalogue metadata and the
+/// sender's name only; the owner's journal, rating, and dates are never loaded
+/// into it, and there is no setting that widens it. Sharing is sender-revocable
+/// ("Take it back") and dies with either account.
+model BookShare {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId      String   @map("book_id") @db.Uuid
+  senderId    String   @map("sender_id") @db.Uuid
+  recipientId String   @map("recipient_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  book      Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  sender    User @relation("sentBookShares", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("receivedBookShares", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, recipientId])
+  @@index([recipientId])
+  @@map("book_shares")
 }
 
 /// A user's reflection on a finished book. Presence of one (with status
