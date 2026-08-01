@@ -5,6 +5,7 @@ import {
   listDiscoveryReports,
   getDiscoveryReport,
 } from "../services/discovery-report.service";
+import { generateJournalPrompts } from "../services/journal-prompts.service";
 
 export const aiController = {
   async refreshTasteProfile(
@@ -28,6 +29,22 @@ export const aiController = {
     try {
       const profile = await tasteProfileService.get(req.user!.userId);
       res.json({ data: profile });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async journalPrompts(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const prompts = await generateJournalPrompts(
+        req.user!.userId,
+        req.params.bookId as string,
+      );
+      res.json({ data: { prompts } });
     } catch (err) {
       next(err);
     }

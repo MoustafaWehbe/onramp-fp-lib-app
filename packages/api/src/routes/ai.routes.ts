@@ -8,6 +8,7 @@ router.use(authenticate);
 
 router.post("/taste-profile/refresh", aiController.refreshTasteProfile);
 router.get("/taste-profile", aiController.getTasteProfile);
+router.post("/journal-prompts/:bookId", aiController.journalPrompts);
 router.post("/discovery-report", aiController.discoveryReport);
 router.get("/discovery-reports", aiController.listDiscoveryReports);
 // Declared after /discovery-reports so the literal path wins over :id.

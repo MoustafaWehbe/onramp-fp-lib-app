@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useJournal, useSaveJournal } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
+import { JournalPrompts } from "../../components/folio/JournalPrompts";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { cn } from "../../lib/utils";
 
@@ -161,6 +162,19 @@ export function Journal() {
           )}
         </div>
       </section>
+
+      {/* Design B8a — AI openings, only while the reflection hasn't been
+          written yet. They suggest; the cursor below stays live throughout. */}
+      {!journal?.reflectionText && (
+        <JournalPrompts
+          bookId={book.id}
+          onPick={(prompt) =>
+            setReflectionText((text) =>
+              text.trim() ? `${text.trimEnd()}\n\n${prompt}\n` : `${prompt}\n`,
+            )
+          }
+        />
+      )}
 
       <section className="space-y-2">
         <textarea
