@@ -7,7 +7,11 @@ import {
 } from "../services/discovery-report.service";
 import { generateJournalPrompts } from "../services/journal-prompts.service";
 import { buildMoodShelf } from "../services/mood-shelf.service";
-import type { MoodShelfInput } from "../schemas/ai.schemas";
+import {
+  memoryOverview,
+  searchMemory,
+} from "../services/memory-search.service";
+import type { MoodShelfInput, MemorySearchInput } from "../schemas/ai.schemas";
 
 export const aiController = {
   async refreshTasteProfile(
@@ -61,6 +65,33 @@ export const aiController = {
       const { mood, force } = req.body as MoodShelfInput;
       const shelf = await buildMoodShelf(req.user!.userId, mood, { force });
       res.json({ data: shelf });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async memoryOverview(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const overview = await memoryOverview(req.user!.userId);
+      res.json({ data: overview });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async memorySearch(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { query } = req.body as MemorySearchInput;
+      const result = await searchMemory(req.user!.userId, query);
+      res.json({ data: result });
     } catch (err) {
       next(err);
     }

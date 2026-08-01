@@ -122,6 +122,31 @@ export type MoodShelfResult =
   | { status: "thin"; embeddedCount: number; needed: number }
   | { status: "ok"; title: string; items: MoodShelfItem[] };
 
+/** Design G19 — Reading Memory. */
+export interface MemoryOverview {
+  entryCount: number;
+  wordCount: number;
+}
+
+export interface MemoryHit {
+  bookId: string;
+  bookTitle: string;
+  bookAuthor: string;
+  coverImage: string | null;
+  entryDate: string;
+  pre: string;
+  /** The highlighted span; empty when the match was by meaning, not word. */
+  hit: string;
+  post: string;
+  similarity: number | null;
+}
+
+export interface MemorySearchResult {
+  mode: "semantic" | "exact";
+  entryCount: number;
+  hits: MemoryHit[];
+}
+
 export type AccessLevel = "VIEW" | "WRITE";
 export type ShareStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 

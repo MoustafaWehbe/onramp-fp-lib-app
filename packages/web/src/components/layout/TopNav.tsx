@@ -7,10 +7,11 @@ const NAV = [
   { to: "/library", label: "Library" },
   { to: "/shelves", label: "Shelves" },
   { to: "/discover", label: "Discover" },
+  { to: "/memory", label: "Memory" },
   { to: "/metrics", label: "Metrics" },
 ];
 
-/** The design's four-item top nav: Library · Shelves · Discover · Metrics. */
+/** The design's top nav: Library · Shelves · Discover · Memory · Metrics (G19). */
 export function TopNav() {
   const { data: invites } = usePendingInvites();
   const waiting = invites?.length ?? 0;

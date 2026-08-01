@@ -14,6 +14,7 @@ import { BookDetail } from "../pages/library/BookDetail";
 import { Journal } from "../pages/library/Journal";
 import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
+import { Memory } from "../pages/memory/Memory";
 import { Metrics } from "../pages/metrics/Metrics";
 import { Discover } from "../pages/discover/Discover";
 import { MoodShelf } from "../pages/discover/MoodShelf";
@@ -68,6 +69,7 @@ export function AppRoutes() {
           <Route path="/shelves/:id" element={<ShelfDetail />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/discover/mood" element={<MoodShelf />} />
+          <Route path="/memory" element={<Memory />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
