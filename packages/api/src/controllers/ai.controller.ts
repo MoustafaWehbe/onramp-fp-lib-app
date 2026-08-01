@@ -11,6 +11,7 @@ import {
   memoryOverview,
   searchMemory,
 } from "../services/memory-search.service";
+import { yearInReading } from "../services/year-in-reading.service";
 import type { MoodShelfInput, MemorySearchInput } from "../schemas/ai.schemas";
 
 export const aiController = {
@@ -91,6 +92,23 @@ export const aiController = {
     try {
       const { query } = req.body as MemorySearchInput;
       const result = await searchMemory(req.user!.userId, query);
+      res.json({ data: result });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async yearInReading(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const parsed = Number.parseInt(String(req.query.year ?? ""), 10);
+      const year = Number.isFinite(parsed)
+        ? parsed
+        : new Date().getUTCFullYear();
+      const result = await yearInReading(req.user!.userId, year);
       res.json({ data: result });
     } catch (err) {
       next(err);

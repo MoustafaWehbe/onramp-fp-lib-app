@@ -147,6 +147,35 @@ export interface MemorySearchResult {
   hits: MemoryHit[];
 }
 
+/** Design G20 — Year in Reading. */
+export interface YearStats {
+  year: number;
+  finishedCount: number;
+  pages: number;
+  wordsWritten: number;
+  abandonedCount: number;
+  velocity: { month: string; finished: number }[];
+  genreShifts: { genre: string; before: number; after: number }[];
+  standouts: {
+    id: string;
+    title: string;
+    author: string;
+    coverImage: string | null;
+    note: string | null;
+  }[];
+  bookOfTheYear: { title: string; author: string } | null;
+}
+
+export interface YearNarrative {
+  shape: string[];
+  arcs: { label: string; note: string }[];
+  headline: string;
+}
+
+export type YearInReadingResult =
+  | { status: "tooEarly"; year: number; finishedCount: number; needed: number }
+  | { status: "ok"; stats: YearStats; narrative: YearNarrative | null };
+
 export type AccessLevel = "VIEW" | "WRITE";
 export type ShareStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 

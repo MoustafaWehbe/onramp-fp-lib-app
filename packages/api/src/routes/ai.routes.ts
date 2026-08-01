@@ -13,6 +13,7 @@ router.get("/taste-profile", aiController.getTasteProfile);
 router.post("/journal-prompts/:bookId", aiController.journalPrompts);
 router.post("/mood-shelf", validate(moodShelfSchema), aiController.moodShelf);
 router.get("/memory/overview", aiController.memoryOverview);
+router.get("/year-in-reading", aiController.yearInReading);
 router.post(
   "/memory/search",
   validate(memorySearchSchema),

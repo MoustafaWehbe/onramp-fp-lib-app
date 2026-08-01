@@ -113,6 +113,13 @@ export function Memory() {
                 }, ${overview.wordCount.toLocaleString()} words, none of it seen by anyone but you.`
               : "."}
           </p>
+          {/* Design G20 lives beside memory search in section G. */}
+          <Link
+            to="/memory/year"
+            className="inline-block text-xs font-medium text-primary hover:text-accent-foreground"
+          >
+            Your year in reading →
+          </Link>
         </div>
       )}
 
