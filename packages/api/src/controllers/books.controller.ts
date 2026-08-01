@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { booksService } from "../services/books.service";
 import { findSimilarBooks } from "../services/similar-books.service";
+import { searchCatalog } from "../lib/open-library";
+import { saveCover } from "../lib/cover-storage";
 import type {
   CreateBookInput,
   UpdateBookInput,
@@ -59,6 +61,35 @@ export const booksController = {
     try {
       await booksService.remove(req.user!.userId, (req.params.id as string));
       res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async catalogSearch(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const results = await searchCatalog(String(req.query.q ?? "").trim());
+      res.json({ data: results });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async uploadCover(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const body = req.body as unknown;
+      const result = await saveCover(
+        Buffer.isBuffer(body) ? body : Buffer.alloc(0),
+      );
+      res.status(201).json({ data: result });
     } catch (err) {
       next(err);
     }

@@ -1,17 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBook, useBooks, useCreateBook, useUpdateBook } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { BookCover } from "../../components/folio/BookCover";
+import {
+  CatalogSearch,
+  type CatalogResult,
+} from "../../components/folio/CatalogSearch";
+import { CoverDropzone } from "../../components/folio/CoverDropzone";
 import { READING_STATUSES, STATUS_LABEL, STATUS_DOT, type ReadingStatus } from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /**
- * Design B6 — "Add / Edit Book". One form, two modes: /books/new creates,
- * /books/:id/edit hydrates the same fields and PATCHes. Cover is optional;
- * a typographic one is generated otherwise.
+ * Design B6a — "Add / Edit Book". One form, two modes: /books/new creates
+ * (search-first, with the catalog above the manual fields), /books/:id/edit
+ * hydrates the same fields and PATCHes. Cover is optional; a typographic one
+ * is generated otherwise.
  */
 export function AddBook() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +34,21 @@ export function AddBook() {
   const [pageCount, setPageCount] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<ReadingStatus>("WANT_TO_READ");
+  const [openLibraryId, setOpenLibraryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  // Design B6a — "Use this": the catalog row fills the manual fields, which
+  // stay fully editable afterwards.
+  function applyCatalogPick(r: CatalogResult) {
+    setTitle(r.title);
+    setAuthor(r.author);
+    if (r.year) setYear(String(r.year));
+    if (r.pageCount) setPageCount(String(r.pageCount));
+    if (r.coverUrl) setCoverImage(r.coverUrl);
+    setOpenLibraryId(r.openLibraryId);
+    titleRef.current?.focus();
+  }
 
   // Hydrate once when editing.
   useEffect(() => {
@@ -63,6 +82,7 @@ export function AddBook() {
       year: year ? Number(year) : undefined,
       pageCount: pageCount ? Number(pageCount) : undefined,
       status,
+      ...(isEdit ? {} : { openLibraryId: openLibraryId ?? undefined }),
     };
     try {
       if (isEdit && id) {
@@ -89,29 +109,28 @@ export function AddBook() {
         {isEdit ? "Edit details" : "Add a book"}
       </h1>
 
+      {/* Design B6a — search first; the manual form never blocks on it. */}
+      {!isEdit && (
+        <CatalogSearch
+          onPick={applyCatalogPick}
+          onManual={() => titleRef.current?.focus()}
+        />
+      )}
+
       <form onSubmit={onSubmit} className="grid gap-8 sm:grid-cols-[180px_1fr]">
-        <div className="space-y-2">
-          <BookCover
-            title={title || "Untitled"}
-            author={author || "Unknown"}
-            coverImage={coverImage || null}
-          />
-          <p className="text-[0.7rem] leading-snug text-muted-foreground">
-            Optional — a typographic cover is generated otherwise.
-          </p>
-          <Input
-            value={coverImage}
-            onChange={(e) => setCoverImage(e.target.value)}
-            placeholder="Cover image URL"
-            className="bg-card text-xs"
-          />
-        </div>
+        <CoverDropzone
+          title={title || "Untitled"}
+          author={author || "Unknown"}
+          coverImage={coverImage || null}
+          onChange={(url) => setCoverImage(url ?? "")}
+        />
 
         <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
               id="title"
+              ref={titleRef}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="The Peregrine Notebooks"

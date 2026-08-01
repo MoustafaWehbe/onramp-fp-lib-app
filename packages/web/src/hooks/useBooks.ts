@@ -18,6 +18,8 @@ export interface BookInput {
   year?: number;
   pageCount?: number;
   status?: ReadingStatus;
+  /** Set when the book came from the B6a catalog search — powers dedup. */
+  openLibraryId?: string;
 }
 
 /** Drop empty filter values so we don't send `?status=` and friends. */

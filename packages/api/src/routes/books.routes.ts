@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, raw } from "express";
 import { authenticate } from "../middleware/authenticate";
 import { validate } from "../middleware/validate";
 import { booksController } from "../controllers/books.controller";
@@ -18,6 +18,15 @@ router.use(authenticate);
 
 router.get("/", validate(listBooksQuerySchema, "query"), booksController.list);
 router.post("/", validate(createBookSchema), booksController.create);
+// Design B6a — literal paths before /:id so they never match as an id.
+router.get("/catalog-search", booksController.catalogSearch);
+// The cover arrives as a raw octet-stream (the type is sniffed from the
+// bytes), so the app-level 1 MB JSON parser never sees it.
+router.post(
+  "/cover",
+  raw({ type: "application/octet-stream", limit: "6mb" }),
+  booksController.uploadCover,
+);
 router.get("/:id", booksController.get);
 router.patch("/:id", validate(updateBookSchema), booksController.update);
 router.delete("/:id", booksController.remove);
