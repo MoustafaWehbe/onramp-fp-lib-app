@@ -1,5 +1,6 @@
 import { getPrisma, chatCompletion, type ChatMessage } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
+import { stripToJson } from "../lib/llm-json";
 import {
   retrieveCandidates,
   type Candidate,
@@ -150,17 +151,6 @@ function parsePicks(raw: string): RawPick[] | null {
   } catch {
     return null;
   }
-}
-
-/** Strip Markdown code fences / surrounding prose so fenced JSON parses (gemma). */
-function stripToJson(raw: string): string {
-  let s = raw.trim();
-  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fenced) s = fenced[1]!.trim();
-  const first = s.indexOf("{");
-  const last = s.lastIndexOf("}");
-  if (first >= 0 && last > first) s = s.slice(first, last + 1);
-  return s;
 }
 
 /** Return a list of specific problems; empty means the picks are valid. */

@@ -19,6 +19,7 @@ router.post("/", validate(createBookSchema), booksController.create);
 router.get("/:id", booksController.get);
 router.patch("/:id", validate(updateBookSchema), booksController.update);
 router.delete("/:id", booksController.remove);
+router.get("/:id/similar", booksController.similar);
 router.get("/:id/journal", booksController.getJournal);
 router.put(
   "/:id/journal",

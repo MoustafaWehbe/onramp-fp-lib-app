@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
+import { SimilarBooks } from "../../components/folio/SimilarBooks";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { READING_STATUSES, STATUS_LABEL, type ReadingStatus } from "../../lib/types";
@@ -195,6 +196,9 @@ export function BookDetail() {
           </div>
         </div>
       </div>
+
+      {/* Design B7a — full-width band under the detail grid. */}
+      <SimilarBooks bookId={book.id} />
     </div>
   );
 }

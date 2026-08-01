@@ -92,6 +92,41 @@ export function useDeleteBook() {
   });
 }
 
+export interface SimilarBookItem {
+  id: string;
+  title: string;
+  author: string;
+  genre: string | null;
+  coverImage: string | null;
+  similarity: number;
+  why: string;
+}
+
+export interface SimilarBooksResult {
+  status: "ok" | "thin";
+  embeddedCount: number;
+  needed: number;
+  items: SimilarBookItem[];
+}
+
+/** Design B7a — "Books like this one", drawn only from the reader's own library. */
+export function useSimilarBooks(bookId: string | undefined) {
+  return useQuery({
+    queryKey: ["similar-books", bookId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: SimilarBooksResult }>(
+        `/books/${bookId}/similar`,
+      );
+      return data.data;
+    },
+    enabled: Boolean(bookId),
+    // Retrieval + a generation call can take a while and failures mean the
+    // engine is offline — surface that state instead of hammering it.
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useJournal(bookId: string | undefined) {
   return useQuery({
     queryKey: ["journal", bookId],

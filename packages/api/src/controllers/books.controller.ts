@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { booksService } from "../services/books.service";
+import { findSimilarBooks } from "../services/similar-books.service";
 import type {
   CreateBookInput,
   UpdateBookInput,
@@ -58,6 +59,22 @@ export const booksController = {
     try {
       await booksService.remove(req.user!.userId, (req.params.id as string));
       res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async similar(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result = await findSimilarBooks(
+        req.user!.userId,
+        (req.params.id as string),
+      );
+      res.json({ data: result });
     } catch (err) {
       next(err);
     }
