@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run db:generate --workspace @starter-kit/shared",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "test": "turbo run test",
