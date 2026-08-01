@@ -1,14 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LoadingSpinner } from "../components/shared/LoadingSpinner";
+import { Shimmer } from "../components/folio/Shimmer";
 
 export function ProtectedRoute() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <LoadingSpinner />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Shimmer className="h-5 w-36" />
       </div>
     );
   }

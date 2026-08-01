@@ -2,10 +2,12 @@ import { z } from "zod";
 
 export const createShelfSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(280).optional(),
 });
 
 export const updateShelfSchema = z.object({
-  name: z.string().trim().min(1).max(120),
+  name: z.string().trim().min(1).max(120).optional(),
+  description: z.string().trim().max(280).optional(),
 });
 
 export const addBookSchema = z.object({

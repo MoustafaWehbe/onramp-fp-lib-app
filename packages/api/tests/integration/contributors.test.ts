@@ -75,9 +75,8 @@ beforeAll(async () => {
     },
   });
   bookId = book.id;
-  await prisma.shelf.update({
-    where: { id: shelfId },
-    data: { books: { connect: { id: bookId } } },
+  await prisma.bookOnShelf.create({
+    data: { shelfId, bookId, addedById: aliceId },
   });
   // Alice's personal reflection + rating — a contributor must never see these.
   await prisma.journalEntry.create({
@@ -157,6 +156,21 @@ describe("Shelf sharing + contributors (integration, real database)", () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].user.email).toBe("bob@example.com");
+  });
+
+  it("the invitee can discover the invite waiting on them", async () => {
+    const res = await request(app)
+      .get("/api/contributors/invites")
+      .set("Cookie", bobCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toMatchObject({
+      shelfId,
+      name: "Sci-Fi",
+      owner: { id: aliceId },
+    });
+    // The invite itself must not carry the owner's library with it.
+    expect(res.body.data[0].books).toBeUndefined();
   });
 
   it("invitee accepts the invite (200, ACCEPTED)", async () => {

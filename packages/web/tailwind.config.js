@@ -33,11 +33,34 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Reading-lifecycle accents (design §0, "Lifecycle states").
+        lifecycle: {
+          want: "#8A7A45",
+          reading: "#A34E2C",
+          finished: "#3E5C46",
+          abandoned: "#9A9086",
+        },
+      },
+      fontFamily: {
+        // Newsreader for display/headings, Instrument Sans for UI text,
+        // JetBrains Mono for numerals + metadata — the design's type scale.
+        display: ["Newsreader", "Georgia", "serif"],
+        sans: ["'Instrument Sans'", "system-ui", "sans-serif"],
+        mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "-500px 0" },
+          "100%": { backgroundPosition: "500px 0" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.6s linear infinite",
       },
     },
   },

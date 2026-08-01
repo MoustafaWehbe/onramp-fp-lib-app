@@ -1,7 +1,7 @@
 import request from "supertest";
 import type { Response } from "supertest";
 import { app } from "../../app";
-import { getPrisma } from "@starter-kit/shared";
+import { getPrisma, embeddingsQueue } from "@starter-kit/shared";
 
 // Exercises the Books CRUD + journal endpoints against the real (test) Postgres.
 
@@ -119,6 +119,31 @@ describe("Books CRUD (integration, real database)", () => {
     const got = await authed(request(app).get(`/api/books/${bookId}/journal`));
     expect(got.status).toBe(200);
     expect(got.body.data.reflectionText).toContain("profound");
+  });
+
+  it("saving a journal enqueues the book's embedding job", async () => {
+    // Drain anything queued by earlier tests so the assertion is precise.
+    await embeddingsQueue.drain();
+
+    const res = await authed(
+      request(app).put(`/api/books/${bookId}/journal`),
+    ).send({ reflectionText: "Revised: even better on a second read." });
+    expect(res.status).toBe(200);
+
+    // A dev worker may share this Redis and consume the job immediately, so
+    // look across every state rather than only the waiting list.
+    const jobs = await embeddingsQueue.getJobs([
+      "waiting",
+      "delayed",
+      "active",
+      "completed",
+      "failed",
+    ]);
+    const job = jobs.find((j) => j.data.entityId === bookId);
+    expect(job).toBeDefined();
+    expect(job!.data.entityType).toBe("book");
+
+    await embeddingsQueue.drain(); // leave the queue clean for other suites
   });
 
   it("does not expose another user's book (404)", async () => {

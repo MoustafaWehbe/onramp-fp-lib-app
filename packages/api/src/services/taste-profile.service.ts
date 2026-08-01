@@ -76,6 +76,24 @@ export class TasteProfileService {
       aggregatedData,
     };
   }
+
+  /**
+   * The caller's own taste profile. The 768-dim embedding column is
+   * `Unsupported(...)` in the schema, so Prisma leaves it out of the result —
+   * the client gets the summary, never the raw vector.
+   */
+  async get(userId: string) {
+    const profile = await prisma.tasteProfile.findUnique({
+      where: { userId },
+    });
+    if (!profile) {
+      throw createError(
+        "No taste profile yet — refresh it once you've finished a book",
+        404,
+      );
+    }
+    return profile;
+  }
 }
 
 /** Σ(weight · vector) / Σ(weight), element-wise, weighted by the book's rating. */
