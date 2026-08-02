@@ -17,7 +17,7 @@ export function SharedShelfDetail() {
   const { id } = useParams<{ id: string }>();
   const shelfId = id ?? "";
   const { user } = useAuth();
-  const { data: shelves, isLoading } = useSharedWithMe();
+  const { data: shelves, isLoading, isError, refetch } = useSharedWithMe();
   const { data: myBooks } = useBooks({});
   const { add, remove } = useSharedShelfBooks(shelfId);
 
@@ -26,6 +26,22 @@ export function SharedShelfDetail() {
   const [error, setError] = useState<string | null>(null);
 
   if (isLoading) return <Shimmer className="h-64 w-full" />;
+
+  // A failed query must not fall through to "this shelf isn't shared with
+  // you" below — that would misreport a revocation that never happened.
+  if (isError) {
+    return (
+      <EmptyState
+        title="Shared shelves wouldn’t load."
+        line="Nothing has been revoked — this page just couldn’t reach them. Try again in a moment."
+        action={
+          <Button variant="outline" onClick={() => refetch()}>
+            Try again
+          </Button>
+        }
+      />
+    );
+  }
 
   const shelf = shelves?.find((s) => s.shelfId === shelfId);
   if (!shelf) {

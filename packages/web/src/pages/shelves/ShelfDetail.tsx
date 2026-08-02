@@ -16,7 +16,7 @@ import { BookCover } from "../../components/folio/BookCover";
 import { StatusBadge } from "../../components/folio/StatusBadge";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { Shimmer } from "../../components/folio/Shimmer";
-import { Button } from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import type { AccessLevel } from "../../lib/types";
 
@@ -32,7 +32,7 @@ function invitedAgo(iso: string) {
 export function ShelfDetail() {
   const { id } = useParams<{ id: string }>();
   const shelfId = id ?? "";
-  const { data: shelf, isLoading } = useShelf(shelfId);
+  const { data: shelf, isLoading, isError, refetch } = useShelf(shelfId);
   const { data: library } = useBooks({});
   const { data: shares } = useShelfShares(shelfId);
   const addBook = useAddBookToShelf(shelfId);
@@ -51,6 +51,26 @@ export function ShelfDetail() {
   const [email, setEmail] = useState("");
   const [accessLevel, setAccessLevel] = useState<AccessLevel>("VIEW");
   const [shareError, setShareError] = useState<string | null>(null);
+
+  // A settled failure must not read as loading — the eternal-skeleton trap.
+  if (isError) {
+    return (
+      <EmptyState
+        title="This shelf wouldn’t open."
+        line="It may have been removed, or the page couldn’t reach your shelves just now."
+        action={
+          <div className="flex gap-2.5">
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+            <Link to="/shelves" className={buttonVariants({ variant: "ghost" })}>
+              Back to your shelves
+            </Link>
+          </div>
+        }
+      />
+    );
+  }
 
   if (isLoading || !shelf) return <Shimmer className="h-64 w-full" />;
 

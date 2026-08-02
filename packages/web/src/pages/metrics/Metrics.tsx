@@ -26,8 +26,26 @@ function quietestMonth(velocity: { month: string; finished: number }[]) {
 
 /** Design C12 — editorial reading metrics, not a BI dashboard. */
 export function Metrics() {
-  const { data, isLoading } = useAnalytics();
+  const { data, isLoading, isError, refetch } = useAnalytics();
   const { data: reading } = useBooks({ status: "READING" });
+
+  // A settled failure must not read as loading — state it, offer a retry.
+  if (isError) {
+    return (
+      <EmptyState
+        title="The numbers wouldn’t load."
+        line="Your reading is untouched — this page just couldn’t reach it. Try again in a moment."
+        action={
+          <button
+            onClick={() => refetch()}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Try again
+          </button>
+        }
+      />
+    );
+  }
 
   if (isLoading || !data) {
     return (

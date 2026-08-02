@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
+import { EmptyState } from "../../components/folio/EmptyState";
 import { ShareBookDialog } from "../../components/folio/ShareBookDialog";
 import { SimilarBooks } from "../../components/folio/SimilarBooks";
 import { Shimmer } from "../../components/folio/Shimmer";
@@ -19,7 +20,7 @@ import { cn } from "../../lib/utils";
 export function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: book, isLoading } = useBook(id);
+  const { data: book, isLoading, isError, refetch } = useBook(id);
   const { data: journal } = useJournal(id);
   const { data: shelfInfo } = useBookShelves(id);
   const updateBook = useUpdateBook();
@@ -27,6 +28,26 @@ export function BookDetail() {
   const [addingToShelf, setAddingToShelf] = useState(false);
   const [sharing, setSharing] = useState(false);
   const addToShelf = useAddBookToAnyShelf();
+
+  // A settled failure must not read as loading — the eternal-skeleton trap.
+  if (isError) {
+    return (
+      <EmptyState
+        title="This book wouldn’t open."
+        line="It may have been removed, or the page couldn’t reach your library just now."
+        action={
+          <div className="flex gap-2.5">
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+            <Link to="/library" className={buttonVariants({ variant: "ghost" })}>
+              Back to your library
+            </Link>
+          </div>
+        }
+      />
+    );
+  }
 
   if (isLoading || !book) {
     return (

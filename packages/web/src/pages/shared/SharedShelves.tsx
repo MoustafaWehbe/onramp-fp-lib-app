@@ -106,10 +106,11 @@ function ReceivedBookCard({ share }: { share: ReceivedBookShare }) {
 
 /** Shelves and single books other people have shared with you, plus invites. */
 export function SharedShelves() {
-  const { data: shelves, isLoading } = useSharedWithMe();
+  const { data: shelves, isLoading, isError, refetch } = useSharedWithMe();
   const { data: invites } = usePendingInvites();
-  const { data: receivedBooks } = useReceivedBookShares();
-  const { data: sentBooks } = useSentBookShares();
+  const { data: receivedBooks, isError: receivedError } =
+    useReceivedBookShares();
+  const { data: sentBooks, isError: sentError } = useSentBookShares();
   const revoke = useRevokeBookShare();
   const respond = useRespondToInvite();
   const [revokeError, setRevokeError] = useState<string | null>(null);
@@ -197,7 +198,14 @@ export function SharedShelves() {
         <h2 className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
           Books you&rsquo;ve sent
         </h2>
-        {sentBooks && sentBooks.length > 0 ? (
+        {sentError ? (
+          // Never show "you haven't sent anyone a book" for a failed query —
+          // shares that exist would look revoked.
+          <p className="rounded-[var(--radius)] border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+            Your sent books wouldn&rsquo;t load just now — nothing has changed
+            about them.
+          </p>
+        ) : sentBooks && sentBooks.length > 0 ? (
           <div className="space-y-2">
             {sentBooks.map((s) => (
               <div
@@ -263,7 +271,25 @@ export function SharedShelves() {
         )}
       </section>
 
-      {isLoading ? (
+      {receivedError && (
+        <p className="rounded-[var(--radius)] border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          Books shared with you wouldn&rsquo;t load just now — nothing has been
+          taken back.
+        </p>
+      )}
+
+      {isError ? (
+        // A failed query must not fall through to "nothing shared with you".
+        <EmptyState
+          title="Shared shelves wouldn’t load."
+          line="Nothing has been revoked — this page just couldn’t reach them. Try again in a moment."
+          action={
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <Shimmer className="h-24 w-full" />
       ) : shelves && shelves.length > 0 ? (
         <div className="space-y-3">

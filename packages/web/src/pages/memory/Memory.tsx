@@ -48,17 +48,21 @@ export function Memory() {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [result, setResult] = useState<MemorySearchResult | null>(null);
+  // A request that never reached the server is not "no matches" — the
+  // degraded exact mode is a SERVER answer; this is the absence of one.
+  const [searchFailed, setSearchFailed] = useState(false);
 
   async function run(text: string) {
     const trimmed = text.trim();
     if (!trimmed || search.isPending) return;
     setQuery(trimmed);
     setSubmitted(trimmed);
+    setSearchFailed(false);
     try {
       setResult(await search.mutateAsync(trimmed));
     } catch {
-      // Even the degraded path failed — treat like no matches with a notice.
-      setResult({ mode: "exact", entryCount: overview?.entryCount ?? 0, hits: [] });
+      setResult(null);
+      setSearchFailed(true);
     }
   }
 
@@ -66,6 +70,7 @@ export function Memory() {
     setQuery("");
     setSubmitted("");
     setResult(null);
+    setSearchFailed(false);
     search.reset();
   }
 
@@ -93,11 +98,12 @@ export function Memory() {
 
   const searching = search.isPending;
   const hasResult = result !== null && !searching;
+  const failed = searchFailed && !searching;
 
   return (
     <div className="space-y-8">
       {/* ── Hero (collapses once a search is in play) ─────────────────── */}
-      {!hasResult && !searching && (
+      {!hasResult && !searching && !failed && (
         <div className="mx-auto max-w-xl space-y-3 pt-10 text-center">
           <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
             Reading memory
@@ -160,8 +166,24 @@ export function Memory() {
         )}
       </form>
 
+      {/* ── Search failed outright: state it, keep the query for retry ── */}
+      {failed && (
+        <div className="mx-auto max-w-2xl space-y-3 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-6">
+          <p className="text-sm font-semibold text-destructive">
+            The search didn&rsquo;t go through.
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Your reflections are untouched — the page just couldn&rsquo;t reach
+            them. Try the same search again in a moment.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => void run(submitted)}>
+            Try again
+          </Button>
+        </div>
+      )}
+
       {/* ── Idle: example chips + privacy line ────────────────────────── */}
-      {!hasResult && !searching && (
+      {!hasResult && !searching && !failed && (
         <div className="flex flex-col items-center gap-4">
           <p className="text-xs text-muted-foreground">Or start with one of these</p>
           {/* G19 mobile stacks the example chips full-width for the thumb. */}

@@ -8,6 +8,7 @@ import {
   CatalogSearch,
   type CatalogResult,
 } from "../../components/folio/CatalogSearch";
+import { EmptyState } from "../../components/folio/EmptyState";
 import { CoverDropzone } from "../../components/folio/CoverDropzone";
 import {
   READING_STATUSES,
@@ -32,7 +33,11 @@ export function AddBook() {
   const navigate = useNavigate();
   const createBook = useCreateBook();
   const updateBook = useUpdateBook();
-  const { data: existing } = useBook(isEdit ? id : undefined);
+  const {
+    data: existing,
+    isError: loadError,
+    refetch: refetchExisting,
+  } = useBook(isEdit ? id : undefined);
   const { data: allBooks } = useBooks({});
 
   const [title, setTitle] = useState("");
@@ -113,6 +118,22 @@ export function AddBook() {
           : "Something went wrong saving this book.",
       );
     }
+  }
+
+  // Editing a book that failed to load would present a blank create form for
+  // a book that exists — state the failure instead of the misleading form.
+  if (isEdit && loadError) {
+    return (
+      <EmptyState
+        title="This book wouldn’t open for editing."
+        line="Its details are unchanged — the page just couldn’t reach it. Try again in a moment."
+        action={
+          <Button variant="outline" onClick={() => refetchExisting()}>
+            Try again
+          </Button>
+        }
+      />
+    );
   }
 
   return (

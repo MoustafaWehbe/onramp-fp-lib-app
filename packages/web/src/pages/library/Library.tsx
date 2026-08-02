@@ -18,7 +18,7 @@ const SORTS = [
  *  empty states (first-run vs filtered-empty). */
 export function Library() {
   const [filters, setFilters] = useState<BookFilters>({ sort: "-createdAt" });
-  const { data: books, isLoading } = useBooks(filters);
+  const { data: books, isLoading, isError, refetch } = useBooks(filters);
 
   // The unfiltered count tells first-run ("no books at all") apart from
   // filtered-empty ("no books match") — they're different screens in the design.
@@ -151,7 +151,19 @@ export function Library() {
         </div>
       )}
 
-      {isLoading ? (
+      {isError ? (
+        // A failed query must not fall through to the empty states below —
+        // "Your shelf is waiting" would be a lie about a library that exists.
+        <EmptyState
+          title="Your library wouldn’t load."
+          line="The books are all still there — this page just couldn’t reach them. Try again in a moment."
+          action={
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <BookGridShimmer />
       ) : books && books.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
