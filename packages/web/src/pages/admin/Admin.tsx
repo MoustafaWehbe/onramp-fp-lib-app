@@ -100,7 +100,14 @@ export function Admin() {
       </div>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-7 px-6 pb-12 pt-8 lg:px-10">
-        {isLoading || !stats ? (
+        {/* A settled failure must not read as loading — the skeleton would
+            spin forever. The full designed states land with Section F. */}
+        {isError ? (
+          <div className="rounded-[6px] border border-admin-red/40 bg-admin-panel px-6 py-16 text-center text-xs text-admin-dim">
+            Couldn&rsquo;t load admin stats. Check that the API is reachable,
+            then reload.
+          </div>
+        ) : isLoading || !stats ? (
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
             {[1, 2, 3, 4, 5].map((i) => (
               <Shimmer key={i} className={cn("h-28", DARK_SHIMMER)} />
