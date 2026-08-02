@@ -241,7 +241,9 @@ export function MoodShelf() {
   // ── Results ─────────────────────────────────────────────────────────────
   if (result?.status === "ok") {
     return (
-      <div className="space-y-8">
+      // 0M Settling — 140ms even at this full-page scale (no distance
+      // scaling by rule; flagged for an on-device re-check).
+      <div className="animate-settle space-y-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-2xl space-y-2">
             <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">

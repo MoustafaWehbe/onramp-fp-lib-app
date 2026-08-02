@@ -71,14 +71,53 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // Design 0M — the motion tokens, pasted from the frame's config line.
+      // Three durations (a set, not a continuum) and two curves: settle for
+      // every entrance, retire for every exit.
+      transitionDuration: {
+        instant: "80ms",
+        short: "140ms",
+        considered: "220ms",
+      },
+      transitionTimingFunction: {
+        settle: "cubic-bezier(.32,.72,0,1)",
+        retire: "cubic-bezier(.4,0,1,1)",
+      },
       keyframes: {
         shimmer: {
           "0%": { backgroundPosition: "-500px 0" },
           "100%": { backgroundPosition: "500px 0" },
         },
+        // 0M pattern 1 · Settling — content replacing a placeholder.
+        "settle-in": {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        // 0M pattern 2 · Arriving — a surface that owns the screen.
+        "arrive-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "sheet-in": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+        "scrim-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "retire-out": {
+          from: { opacity: "1", transform: "translateY(0)" },
+          to: { opacity: "0", transform: "translateY(4px)" },
+        },
       },
       animation: {
         shimmer: "shimmer 1.6s linear infinite",
+        settle: "settle-in 140ms cubic-bezier(.32,.72,0,1) both",
+        arrive: "arrive-in 220ms cubic-bezier(.32,.72,0,1) both",
+        sheet: "sheet-in 220ms cubic-bezier(.32,.72,0,1) both",
+        scrim: "scrim-in 140ms cubic-bezier(.32,.72,0,1) both",
+        retire: "retire-out 140ms cubic-bezier(.4,0,1,1) both",
       },
     },
   },

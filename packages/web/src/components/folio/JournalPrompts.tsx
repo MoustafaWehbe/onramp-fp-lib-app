@@ -120,7 +120,8 @@ export function JournalPrompts({ bookId, onPick }: JournalPromptsProps) {
   }
 
   return (
-    <div className="space-y-3">
+    // 0M Settling — the chips replace their shimmer pills as one region.
+    <div className="animate-settle space-y-3">
       <p className="text-xs text-muted-foreground">
         A few ways in, if you want one. Tap to start writing from it.
       </p>

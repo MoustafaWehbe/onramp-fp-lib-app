@@ -71,3 +71,14 @@
 .animate-think {
   animation: think 1.2s ease-in-out infinite;
 }
+
+/* Design 0M — reduced motion is a requirement of shipping a pattern, not a
+   courtesy. iteration-count is the load-bearing line: it stops the infinite
+   shimmer and think loops dead; durations collapse every travel to nothing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

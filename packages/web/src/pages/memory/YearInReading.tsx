@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -23,6 +24,35 @@ function useYearInReading(year: number) {
     retry: false,
     staleTime: Infinity, // one long local generation per visit is plenty
   });
+}
+
+/**
+ * 0M Tallying, the retrospective exception: on first reveal only, a count
+ * climbs once through intermediate values over 220ms, then never re-runs.
+ * Under reduced motion the final value is rendered directly — no climb.
+ */
+function TallyNumber({ value }: { value: number }) {
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [shown, setShown] = useState(reduced ? value : 0);
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current || reduced) return;
+    ran.current = true;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 220);
+      setShown(Math.round(value * t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduced]);
+
+  return <>{shown.toLocaleString()}</>;
 }
 
 /** Draw the keepable card on a canvas and download it — nothing is posted. */
@@ -240,7 +270,8 @@ export function YearInReading() {
 
   return (
     // Bleeds the dark hero to the layout edge at every gutter width.
-    <div className="-mx-4 space-y-0 sm:-mx-8 lg:-mx-12">
+    // 0M Settling — the retrospective replaces the generating state whole.
+    <div className="animate-settle -mx-4 space-y-0 sm:-mx-8 lg:-mx-12">
       {/* ── Dark hero ─────────────────────────────────────────────────── */}
       <div className="rounded-[var(--radius)] bg-[#221D16] px-5 py-10 text-[#F5EFE3] sm:px-8 sm:py-12 lg:px-12">
         <div className="space-y-4">
@@ -255,16 +286,19 @@ export function YearInReading() {
             this page, and nothing here is published anywhere.
           </p>
         </div>
+        {/* 0M Tallying — the hero counts climb once on first reveal. */}
         <div className="mt-8 flex flex-wrap gap-x-14 gap-y-6 border-t border-[#3A342B] pt-7">
           {[
-            [stats.finishedCount.toLocaleString(), "books finished"],
-            [stats.pages.toLocaleString(), "pages"],
-            [stats.wordsWritten.toLocaleString(), "words you wrote about them"],
-            [stats.abandonedCount.toLocaleString(), "set down unfinished"],
-          ].map(([big, small]) => (
-            <div key={small} className="space-y-1">
-              <p className="font-display text-4xl">{big}</p>
-              <p className="text-xs text-[#A79E8F]">{small}</p>
+            { value: stats.finishedCount, label: "books finished" },
+            { value: stats.pages, label: "pages" },
+            { value: stats.wordsWritten, label: "words you wrote about them" },
+            { value: stats.abandonedCount, label: "set down unfinished" },
+          ].map(({ value, label }) => (
+            <div key={label} className="space-y-1">
+              <p className="font-display text-4xl">
+                <TallyNumber value={value} />
+              </p>
+              <p className="text-xs text-[#A79E8F]">{label}</p>
             </div>
           ))}
         </div>
@@ -469,16 +503,17 @@ export function YearInReading() {
                 />
               ))}
             </div>
+            {/* 0M Tallying — the card's counts share the one-shot climb. */}
             <div className="flex flex-wrap gap-x-8 gap-y-4 border-t border-[#3A342B] pt-5">
               <div>
                 <p className="font-display text-2xl">
-                  {stats.pages.toLocaleString()}
+                  <TallyNumber value={stats.pages} />
                 </p>
                 <p className="text-[0.65rem] text-[#A79E8F]">pages</p>
               </div>
               <div>
                 <p className="font-display text-2xl">
-                  {stats.wordsWritten.toLocaleString()}
+                  <TallyNumber value={stats.wordsWritten} />
                 </p>
                 <p className="text-[0.65rem] text-[#A79E8F]">words written</p>
               </div>

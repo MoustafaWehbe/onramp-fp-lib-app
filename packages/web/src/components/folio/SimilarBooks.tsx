@@ -93,7 +93,8 @@ export function SimilarBooks({ bookId }: { bookId: string }) {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* 0M Settling — the region rises 4px as one movement, no stagger. */}
+          <div className="animate-settle grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(data?.items ?? []).map((s) => (
               <Link
                 key={s.id}

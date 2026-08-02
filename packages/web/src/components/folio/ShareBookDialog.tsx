@@ -8,6 +8,10 @@ import type { Book } from "../../lib/types";
 import { BookCover } from "./BookCover";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { cn } from "../../lib/utils";
+
+/** 0M Arriving exits at 140ms retire — unmount waits for the curve. */
+const RETIRE_MS = 140;
 
 function ThinkDots() {
   return (
@@ -40,6 +44,16 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  // 0M Arriving — the exit accelerates away (140ms retire) before unmount.
+  // Under reduced motion the animation collapses to 0.01ms, so the close is
+  // effectively immediate.
+  function close() {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(onClose, RETIRE_MS);
+  }
 
   async function send() {
     if (!email.trim() || share.isPending) return;
@@ -70,16 +84,24 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
 
   return (
     // Mobile is a bottom sheet (design E18 mobile); `sm:` restores the
-    // centered dialog. Same content either way.
+    // centered dialog. Same content either way. Motion is 0M Arriving:
+    // scrim fades in 140ms, the surface rises 8px over 220ms settle (the
+    // sheet rises from the bottom edge on the same clock).
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/45 sm:items-center sm:overflow-y-auto sm:p-4"
-      onClick={onClose}
+      className={cn(
+        "fixed inset-0 z-50 flex items-end justify-center bg-foreground/45 sm:items-center sm:overflow-y-auto sm:p-4",
+        closing ? "animate-retire" : "animate-scrim",
+      )}
+      onClick={close}
       role="dialog"
       aria-modal="true"
       aria-label={`Share ${book.title}`}
     >
       <div
-        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[22px] bg-background shadow-2xl sm:my-8 sm:max-h-none sm:rounded-xl"
+        className={cn(
+          "max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[22px] bg-background shadow-2xl sm:my-8 sm:max-h-none sm:rounded-xl",
+          closing ? "animate-retire" : "animate-sheet sm:animate-arrive",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -96,7 +118,7 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={close}
             aria-label="Close"
             className="text-muted-foreground hover:text-foreground"
           >

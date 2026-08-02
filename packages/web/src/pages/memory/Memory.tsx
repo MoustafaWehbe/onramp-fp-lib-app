@@ -230,7 +230,8 @@ export function Memory() {
 
       {/* ── Results ───────────────────────────────────────────────────── */}
       {hasResult && (
-        <div className="mx-auto max-w-3xl space-y-4">
+        // 0M Settling — hits replace the searching shimmer as one region.
+        <div className="animate-settle mx-auto max-w-3xl space-y-4">
           {result.mode === "exact" && (
             <div className="space-y-1 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 px-4 py-3">
               <p className="text-xs font-semibold text-destructive">
