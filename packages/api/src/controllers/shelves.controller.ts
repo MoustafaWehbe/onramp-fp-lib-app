@@ -62,7 +62,11 @@ export const shelvesController = {
     }
   },
 
-  async addBook(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async addBook(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const shelf = await shelvesService.addBook(
         req.user!.userId,

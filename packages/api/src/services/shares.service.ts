@@ -192,7 +192,10 @@ export const sharesService = {
   async contributors(ownerId: string) {
     const shares = await prisma.shelfShare.findMany({
       where: { shelf: { userId: ownerId } },
-      include: { user: userSummary, shelf: { select: { id: true, name: true } } },
+      include: {
+        user: userSummary,
+        shelf: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
     return shares.map((s) => ({

@@ -111,7 +111,10 @@ export function SharedShelves() {
             title="Nothing shared with you yet."
             line="When someone opens a shelf to you, it will appear here — and only that shelf."
             action={
-              <Link to="/library" className={buttonVariants({ variant: "outline" })}>
+              <Link
+                to="/library"
+                className={buttonVariants({ variant: "outline" })}
+              >
                 Back to your library
               </Link>
             }

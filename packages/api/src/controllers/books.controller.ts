@@ -34,7 +34,10 @@ export const booksController = {
 
   async get(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const book = await booksService.getOwned(req.user!.userId, (req.params.id as string));
+      const book = await booksService.getOwned(
+        req.user!.userId,
+        req.params.id as string,
+      );
       res.json({ data: book });
     } catch (err) {
       next(err);
@@ -45,7 +48,7 @@ export const booksController = {
     try {
       const book = await booksService.update(
         req.user!.userId,
-        (req.params.id as string),
+        req.params.id as string,
         req.body as UpdateBookInput,
       );
       res.json({ data: book });
@@ -56,7 +59,7 @@ export const booksController = {
 
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await booksService.remove(req.user!.userId, (req.params.id as string));
+      await booksService.remove(req.user!.userId, req.params.id as string);
       res.status(204).send();
     } catch (err) {
       next(err);
@@ -71,7 +74,7 @@ export const booksController = {
     try {
       const entry = await booksService.getJournal(
         req.user!.userId,
-        (req.params.id as string),
+        req.params.id as string,
       );
       res.json({ data: entry });
     } catch (err) {
@@ -87,7 +90,7 @@ export const booksController = {
     try {
       const entry = await booksService.upsertJournal(
         req.user!.userId,
-        (req.params.id as string),
+        req.params.id as string,
         req.body as JournalEntryInput,
       );
       res.json({ data: entry });

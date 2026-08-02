@@ -14,7 +14,11 @@ import {
 
 type FetchLike = typeof fetch;
 
-function mockFetchResolved(payload: unknown, ok = true, status = 200): jest.Mock {
+function mockFetchResolved(
+  payload: unknown,
+  ok = true,
+  status = 200,
+): jest.Mock {
   const fn = jest.fn().mockResolvedValue({
     ok,
     status,
@@ -80,7 +84,12 @@ describe("Ollama AI client", () => {
   });
 
   it("generateEmbeddings returns one vector per input", async () => {
-    mockFetchResolved({ embeddings: [[1, 2], [3, 4]] });
+    mockFetchResolved({
+      embeddings: [
+        [1, 2],
+        [3, 4],
+      ],
+    });
     await expect(generateEmbeddings(["a", "b"])).resolves.toEqual([
       [1, 2],
       [3, 4],

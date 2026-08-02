@@ -15,7 +15,11 @@ import type { Candidate } from "../../src/services/candidate-retrieval.service";
 
 const prisma = getPrisma();
 
-function candidate(title: string, author: string, similarity: number): Candidate {
+function candidate(
+  title: string,
+  author: string,
+  similarity: number,
+): Candidate {
   return {
     title,
     author,
@@ -37,9 +41,24 @@ const CANDIDATES: Candidate[] = [
 function goodJson(): string {
   return JSON.stringify({
     picks: [
-      { rank: 1, title: "The Fifth Season", author: "N.K. Jemisin", why: "Geology as oppression, like your Broken Earth note." },
-      { rank: 2, title: "Ancillary Justice", author: "Ann Leckie", why: "Identity and empire, echoing your Le Guin love." },
-      { rank: 3, title: "The Dispossessed", author: "Ursula K. Le Guin", why: "The political tenderness you admired." },
+      {
+        rank: 1,
+        title: "The Fifth Season",
+        author: "N.K. Jemisin",
+        why: "Geology as oppression, like your Broken Earth note.",
+      },
+      {
+        rank: 2,
+        title: "Ancillary Justice",
+        author: "Ann Leckie",
+        why: "Identity and empire, echoing your Le Guin love.",
+      },
+      {
+        rank: 3,
+        title: "The Dispossessed",
+        author: "Ursula K. Le Guin",
+        why: "The political tenderness you admired.",
+      },
     ],
   });
 }
@@ -47,7 +66,11 @@ function goodJson(): string {
 let seq = 0;
 async function seedUser() {
   return prisma.user.create({
-    data: { email: `disc-${Date.now()}-${seq++}@example.com`, passwordHash: "x", name: "Reader" },
+    data: {
+      email: `disc-${Date.now()}-${seq++}@example.com`,
+      passwordHash: "x",
+      name: "Reader",
+    },
   });
 }
 
@@ -69,7 +92,9 @@ afterAll(async () => {
 describe("generateDiscoveryReport", () => {
   it("verifies picks and persists a 3-item report", async () => {
     const user = await seedUser();
-    const generate = jest.fn(async (_m: ChatMessage[]): Promise<string> => goodJson());
+    const generate = jest.fn(async (_m: ChatMessage[]): Promise<string> =>
+      goodJson(),
+    );
     const deps: DiscoveryDeps = { retrieve: async () => CANDIDATES, generate };
 
     const report = await generateDiscoveryReport(user.id, {}, deps);
@@ -98,9 +123,14 @@ describe("generateDiscoveryReport", () => {
   it("parses fenced ```json output from the model", async () => {
     const user = await seedUser();
     const generate = jest.fn(
-      async (_m: ChatMessage[]): Promise<string> => "```json\n" + goodJson() + "\n```",
+      async (_m: ChatMessage[]): Promise<string> =>
+        "```json\n" + goodJson() + "\n```",
     );
-    const report = await generateDiscoveryReport(user.id, {}, { retrieve: async () => CANDIDATES, generate });
+    const report = await generateDiscoveryReport(
+      user.id,
+      {},
+      { retrieve: async () => CANDIDATES, generate },
+    );
     expect(report.items).toHaveLength(3);
   });
 
@@ -110,14 +140,23 @@ describe("generateDiscoveryReport", () => {
       picks: [
         { rank: 1, title: "Invented Title", author: "Nobody", why: "x" },
         { rank: 2, title: "Ancillary Justice", author: "Ann Leckie", why: "y" },
-        { rank: 3, title: "The Dispossessed", author: "Ursula K. Le Guin", why: "z" },
+        {
+          rank: 3,
+          title: "The Dispossessed",
+          author: "Ursula K. Le Guin",
+          why: "z",
+        },
       ],
     });
     const generate = jest
       .fn(async (_m: ChatMessage[]): Promise<string> => goodJson())
       .mockResolvedValueOnce(badJson);
 
-    const report = await generateDiscoveryReport(user.id, {}, { retrieve: async () => CANDIDATES, generate });
+    const report = await generateDiscoveryReport(
+      user.id,
+      {},
+      { retrieve: async () => CANDIDATES, generate },
+    );
 
     expect(generate).toHaveBeenCalledTimes(2);
     const secondMessages = generate.mock.calls[1]![0];
@@ -130,21 +169,35 @@ describe("generateDiscoveryReport", () => {
 
   it("fails cleanly (502) when the model misses twice", async () => {
     const user = await seedUser();
-    const bad = JSON.stringify({ picks: [{ rank: 1, title: "Nope", author: "X", why: "a" }] });
+    const bad = JSON.stringify({
+      picks: [{ rank: 1, title: "Nope", author: "X", why: "a" }],
+    });
     const generate = jest.fn(async (_m: ChatMessage[]): Promise<string> => bad);
 
     await expect(
-      generateDiscoveryReport(user.id, {}, { retrieve: async () => CANDIDATES, generate }),
+      generateDiscoveryReport(
+        user.id,
+        {},
+        { retrieve: async () => CANDIDATES, generate },
+      ),
     ).rejects.toMatchObject({ statusCode: 502 });
     expect(generate).toHaveBeenCalledTimes(2);
-    expect(await prisma.discoveryReport.count({ where: { userId: user.id } })).toBe(0);
+    expect(
+      await prisma.discoveryReport.count({ where: { userId: user.id } }),
+    ).toBe(0);
   });
 
   it("returns 422 when there are fewer than 3 candidates", async () => {
     const user = await seedUser();
-    const generate = jest.fn(async (_m: ChatMessage[]): Promise<string> => goodJson());
+    const generate = jest.fn(async (_m: ChatMessage[]): Promise<string> =>
+      goodJson(),
+    );
     await expect(
-      generateDiscoveryReport(user.id, {}, { retrieve: async () => CANDIDATES.slice(0, 2), generate }),
+      generateDiscoveryReport(
+        user.id,
+        {},
+        { retrieve: async () => CANDIDATES.slice(0, 2), generate },
+      ),
     ).rejects.toMatchObject({ statusCode: 422 });
     expect(generate).not.toHaveBeenCalled();
   });

@@ -117,13 +117,16 @@ function ratingWeightedAverage(rows: EmbeddingRow[]): number[] {
   return sum.map((s) => s / totalWeight);
 }
 
-function summarize(rows: EmbeddingRow[]): TasteProfileSummary["aggregatedData"] {
+function summarize(
+  rows: EmbeddingRow[],
+): TasteProfileSummary["aggregatedData"] {
   const genreCounts = new Map<string, number>();
   const authorCounts = new Map<string, number>();
   const ratings: number[] = [];
 
   for (const row of rows) {
-    if (row.genre) genreCounts.set(row.genre, (genreCounts.get(row.genre) ?? 0) + 1);
+    if (row.genre)
+      genreCounts.set(row.genre, (genreCounts.get(row.genre) ?? 0) + 1);
     authorCounts.set(row.author, (authorCounts.get(row.author) ?? 0) + 1);
     if (row.rating != null) ratings.push(row.rating);
   }
@@ -139,8 +142,14 @@ function summarize(rows: EmbeddingRow[]): TasteProfileSummary["aggregatedData"] 
       : null;
 
   return {
-    topGenres: topByCount(genreCounts).map(([genre, count]) => ({ genre, count })),
-    topAuthors: topByCount(authorCounts).map(([author, count]) => ({ author, count })),
+    topGenres: topByCount(genreCounts).map(([genre, count]) => ({
+      genre,
+      count,
+    })),
+    topAuthors: topByCount(authorCounts).map(([author, count]) => ({
+      author,
+      count,
+    })),
     avgRating,
   };
 }

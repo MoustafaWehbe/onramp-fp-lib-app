@@ -37,7 +37,11 @@ async function seedUser() {
   });
 }
 
-async function seedProfile(userId: string, embedding: number[], topGenres: string[]) {
+async function seedProfile(
+  userId: string,
+  embedding: number[],
+  topGenres: string[],
+) {
   const vec = `[${embedding.join(",")}]`;
   const agg = JSON.stringify({
     topGenres: topGenres.map((g) => ({ genre: g, count: 1 })),
@@ -134,7 +138,12 @@ describe("retrieveCandidates", () => {
       },
     });
     await prisma.book.create({
-      data: { userId: user.id, title: "Owned By Name", author: "Jane Doe", status: "READING" },
+      data: {
+        userId: user.id,
+        title: "Owned By Name",
+        author: "Jane Doe",
+        status: "READING",
+      },
     });
 
     const works = [
@@ -157,7 +166,9 @@ describe("retrieveCandidates", () => {
 
     const dup = work("OL500W", "Shared", "Author");
     const fetchSubjectWorks = jest.fn(async (subject: string) =>
-      subject === "science_fiction" ? [dup, work("OL501W", "SciOnly", "A")] : [dup],
+      subject === "science_fiction"
+        ? [dup, work("OL501W", "SciOnly", "A")]
+        : [dup],
     );
     const deps: RetrievalDeps = {
       fetchSubjectWorks,

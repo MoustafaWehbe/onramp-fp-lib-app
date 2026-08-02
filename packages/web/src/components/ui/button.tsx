@@ -8,7 +8,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Hover deepens to accent ink (#8C3F22), not a primary/90 wash.
-        default: "bg-primary text-primary-foreground hover:bg-accent-foreground",
+        default:
+          "bg-primary text-primary-foreground hover:bg-accent-foreground",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:

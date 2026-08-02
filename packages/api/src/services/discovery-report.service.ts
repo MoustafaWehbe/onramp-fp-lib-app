@@ -1,4 +1,8 @@
-import { getPrisma, chatCompletion, type ChatMessage } from "@starter-kit/shared";
+import {
+  getPrisma,
+  chatCompletion,
+  type ChatMessage,
+} from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
 import {
   retrieveCandidates,
@@ -75,7 +79,9 @@ export async function generateDiscoveryReport(
   opts: { moodModifier?: string } = {},
   deps: DiscoveryDeps = defaultDeps,
 ): Promise<DiscoveryReportResult> {
-  const candidates = await deps.retrieve(userId, { moodModifier: opts.moodModifier });
+  const candidates = await deps.retrieve(userId, {
+    moodModifier: opts.moodModifier,
+  });
   if (candidates.length < REQUIRED_PICKS) {
     throw createError(
       "Not enough candidates to build a discovery report — add more finished books first.",
@@ -106,11 +112,16 @@ async function generateVerifiedPicks(
   mood: string | undefined,
   generate: DiscoveryDeps["generate"],
 ): Promise<ResolvedPick[]> {
-  const byKey = new Map(candidates.map((c) => [matchKey(c.title, c.author), c]));
+  const byKey = new Map(
+    candidates.map((c) => [matchKey(c.title, c.author), c]),
+  );
 
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: buildUserMessage(candidates, profileSummary, excerpts, mood) },
+    {
+      role: "user",
+      content: buildUserMessage(candidates, profileSummary, excerpts, mood),
+    },
   ];
 
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -164,12 +175,17 @@ function stripToJson(raw: string): string {
 }
 
 /** Return a list of specific problems; empty means the picks are valid. */
-function validate(picks: RawPick[] | null, byKey: Map<string, Candidate>): string[] {
+function validate(
+  picks: RawPick[] | null,
+  byKey: Map<string, Candidate>,
+): string[] {
   if (!picks) return ["the response was not valid JSON with a `picks` array"];
 
   const problems: string[] = [];
   if (picks.length !== REQUIRED_PICKS) {
-    problems.push(`expected exactly ${REQUIRED_PICKS} picks but got ${picks.length}`);
+    problems.push(
+      `expected exactly ${REQUIRED_PICKS} picks but got ${picks.length}`,
+    );
   }
 
   const seen = new Set<string>();
@@ -180,7 +196,9 @@ function validate(picks: RawPick[] | null, byKey: Map<string, Candidate>): strin
     }
     const key = matchKey(p.title, p.author);
     if (!byKey.has(key)) {
-      problems.push(`"${p.title}" by ${p.author} is not one of the 5 candidates`);
+      problems.push(
+        `"${p.title}" by ${p.author} is not one of the 5 candidates`,
+      );
     }
     if (seen.has(key)) {
       problems.push(`"${p.title}" by ${p.author} was picked more than once`);
@@ -212,7 +230,10 @@ function buildUserMessage(
   return parts.join("\n\n");
 }
 
-function buildCorrectionMessage(problems: string[], candidates: Candidate[]): string {
+function buildCorrectionMessage(
+  problems: string[],
+  candidates: Candidate[],
+): string {
   return (
     "Your previous response was rejected for these reasons:\n" +
     problems.map((p) => `- ${p}`).join("\n") +
@@ -231,7 +252,8 @@ async function loadProfileSummary(userId: string): Promise<string> {
     avgRating?: number | null;
   };
   const genres = (agg.topGenres ?? []).map((g) => g.genre).join(", ") || "n/a";
-  const authors = (agg.topAuthors ?? []).map((a) => a.author).join(", ") || "n/a";
+  const authors =
+    (agg.topAuthors ?? []).map((a) => a.author).join(", ") || "n/a";
   const avg = agg.avgRating != null ? String(agg.avgRating) : "n/a";
   return `READER PROFILE:\n- Top genres: ${genres}\n- Top authors: ${authors}\n- Average rating: ${avg}`;
 }
@@ -243,7 +265,9 @@ async function loadExcerpts(userId: string): Promise<string[]> {
     orderBy: { createdAt: "desc" },
     take: MAX_EXCERPTS,
   });
-  return entries.map((e) => e.reflectionText.trim()).filter((t) => t.length > 0);
+  return entries
+    .map((e) => e.reflectionText.trim())
+    .filter((t) => t.length > 0);
 }
 
 async function persistReport(

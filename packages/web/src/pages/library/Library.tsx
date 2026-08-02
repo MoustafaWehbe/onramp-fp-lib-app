@@ -34,7 +34,9 @@ export function Library() {
         filters.status
           ? { key: "status", label: `Status: ${STATUS_LABEL[filters.status]}` }
           : null,
-        filters.genre ? { key: "genre", label: `Genre: ${filters.genre}` } : null,
+        filters.genre
+          ? { key: "genre", label: `Genre: ${filters.genre}` }
+          : null,
         filters.author
           ? { key: "author", label: `Author: ${filters.author}` }
           : null,
@@ -83,7 +85,9 @@ export function Library() {
         <select
           value={filters.status ?? ""}
           onChange={(e) =>
-            set({ status: (e.target.value || undefined) as BookFilters["status"] })
+            set({
+              status: (e.target.value || undefined) as BookFilters["status"],
+            })
           }
           className="h-10 rounded-[var(--radius)] border border-input bg-card px-3 text-sm"
         >

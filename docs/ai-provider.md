@@ -18,11 +18,11 @@ the LAN**, not a hosted API.
 All via environment variables (see `.env.example`). The real LAN address lives
 only in the local, gitignored `.env` and is **never committed**.
 
-| Variable | Purpose | Example |
-| --- | --- | --- |
-| `OLLAMA_BASE_URL` | Base URL of the Ollama server | `http://localhost:11434` |
-| `OLLAMA_EMBEDDING_MODEL` | Embedding model (768-dim) | `nomic-embed-text` |
-| `OLLAMA_GENERATION_MODEL` | Generation model | `gemma4:26b` (see bake-off below) |
+| Variable                  | Purpose                       | Example                           |
+| ------------------------- | ----------------------------- | --------------------------------- |
+| `OLLAMA_BASE_URL`         | Base URL of the Ollama server | `http://localhost:11434`          |
+| `OLLAMA_EMBEDDING_MODEL`  | Embedding model (768-dim)     | `nomic-embed-text`                |
+| `OLLAMA_GENERATION_MODEL` | Generation model              | `gemma4:26b` (see bake-off below) |
 
 ## Models
 

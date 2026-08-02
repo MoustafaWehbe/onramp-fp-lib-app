@@ -108,7 +108,9 @@ export async function chatCompletion(
     model,
     messages,
     stream: false,
-    ...(Object.keys(ollamaOptions).length > 0 ? { options: ollamaOptions } : {}),
+    ...(Object.keys(ollamaOptions).length > 0
+      ? { options: ollamaOptions }
+      : {}),
   };
 
   const data = await ollamaPost<OllamaChatResponse>(

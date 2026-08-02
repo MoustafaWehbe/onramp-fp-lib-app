@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useBook, useBooks, useCreateBook, useUpdateBook } from "../../hooks/useBooks";
+import {
+  useBook,
+  useBooks,
+  useCreateBook,
+  useUpdateBook,
+} from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { BookCover } from "../../components/folio/BookCover";
-import { READING_STATUSES, STATUS_LABEL, STATUS_DOT, type ReadingStatus } from "../../lib/types";
+import {
+  READING_STATUSES,
+  STATUS_LABEL,
+  STATUS_DOT,
+  type ReadingStatus,
+} from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /**
@@ -197,16 +207,14 @@ export function AddBook() {
 
           <div className="flex items-center gap-3 pt-2">
             <Button type="submit" disabled={!canSubmit}>
-              {pending
-                ? "Saving…"
-                : isEdit
-                  ? "Save changes"
-                  : "Add to library"}
+              {pending ? "Saving…" : isEdit ? "Save changes" : "Add to library"}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              onClick={() => navigate(isEdit && id ? `/books/${id}` : "/library")}
+              onClick={() =>
+                navigate(isEdit && id ? `/books/${id}` : "/library")
+              }
             >
               Cancel
             </Button>

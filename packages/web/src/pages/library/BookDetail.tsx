@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
+import {
+  useBook,
+  useDeleteBook,
+  useJournal,
+  useUpdateBook,
+} from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
-import { READING_STATUSES, STATUS_LABEL, type ReadingStatus } from "../../lib/types";
+import {
+  READING_STATUSES,
+  STATUS_LABEL,
+  type ReadingStatus,
+} from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /** Design B7 — lifecycle control + the journal entry point. */

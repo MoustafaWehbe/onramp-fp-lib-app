@@ -108,7 +108,7 @@ erDiagram
   rotation never produces a duplicate hash.
 - **Reading lifecycle** — `Book.status` (enum `ReadingStatus`) has four states:
   `WANT_TO_READ` → `READING` → `FINISHED` → `ABANDONED`. This is the reading
-  *status* and is distinct from shelves.
+  _status_ and is distinct from shelves.
 - **Shelves** — a `Shelf` is a user-created named collection, many-to-many with
   `Book` (a book can sit on several shelves). Shelves **complement** the reading
   lifecycle rather than replace it. Cross-account **shared shelves** (joint
@@ -137,37 +137,37 @@ validation error `{ "error": "Validation failed", "errors": [{ "field", "message
 
 ### Auth — ✅ implemented
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| POST | `/api/auth/register` | public | `{ email, password, name }` | `201 { data: { id, email, name, role } }` |
-| POST | `/api/auth/login` | public | `{ email, password }` | `200 { data: { user } }` + auth cookies |
-| POST | `/api/auth/refresh` | refresh cookie | — | `200 { data: { message } }` + rotated cookies |
-| POST | `/api/auth/logout` | user | — | `200 { data: { message } }` |
-| GET | `/api/auth/me` | user | — | `200 { data: { id, email, name, role, emailVerified, createdAt } }` |
+| Method | Path                 | Auth           | Request body                | Response                                                            |
+| ------ | -------------------- | -------------- | --------------------------- | ------------------------------------------------------------------- |
+| POST   | `/api/auth/register` | public         | `{ email, password, name }` | `201 { data: { id, email, name, role } }`                           |
+| POST   | `/api/auth/login`    | public         | `{ email, password }`       | `200 { data: { user } }` + auth cookies                             |
+| POST   | `/api/auth/refresh`  | refresh cookie | —                           | `200 { data: { message } }` + rotated cookies                       |
+| POST   | `/api/auth/logout`   | user           | —                           | `200 { data: { message } }`                                         |
+| GET    | `/api/auth/me`       | user           | —                           | `200 { data: { id, email, name, role, emailVerified, createdAt } }` |
 
 ### Books — 🔶 scaffolded (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/books` | user | — (query: `status?`, `q?`) | `200 { data: Book[] }` |
-| POST | `/api/books` | user | `{ title, author, genre?, coverImage?, status?, openLibraryId? }` | `201 { data: Book }` |
-| GET | `/api/books/:id` | owner | — | `200 { data: Book }` |
-| PATCH | `/api/books/:id` | owner | `{ title?, author?, genre?, coverImage?, status? }` | `200 { data: Book }` |
-| DELETE | `/api/books/:id` | owner | — | `204` |
-| GET | `/api/books/:id/journal` | owner | — | `200 { data: JournalEntry \| null }` |
-| PUT | `/api/books/:id/journal` | owner | `{ reflectionText, favoriteQuotes?, rating? }` | `200 { data: JournalEntry }` (upsert; 1:1) |
+| Method | Path                     | Auth  | Request body                                                      | Response                                   |
+| ------ | ------------------------ | ----- | ----------------------------------------------------------------- | ------------------------------------------ |
+| GET    | `/api/books`             | user  | — (query: `status?`, `q?`)                                        | `200 { data: Book[] }`                     |
+| POST   | `/api/books`             | user  | `{ title, author, genre?, coverImage?, status?, openLibraryId? }` | `201 { data: Book }`                       |
+| GET    | `/api/books/:id`         | owner | —                                                                 | `200 { data: Book }`                       |
+| PATCH  | `/api/books/:id`         | owner | `{ title?, author?, genre?, coverImage?, status? }`               | `200 { data: Book }`                       |
+| DELETE | `/api/books/:id`         | owner | —                                                                 | `204`                                      |
+| GET    | `/api/books/:id/journal` | owner | —                                                                 | `200 { data: JournalEntry \| null }`       |
+| PUT    | `/api/books/:id/journal` | owner | `{ reflectionText, favoriteQuotes?, rating? }`                    | `200 { data: JournalEntry }` (upsert; 1:1) |
 
 ### Shelves — 🔶 scaffolded (Owner-scoped; user-created collections)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/shelves` | user | — | `200 { data: Shelf[] }` |
-| POST | `/api/shelves` | user | `{ name }` | `201 { data: Shelf }` |
-| GET | `/api/shelves/:id` | owner | — | `200 { data: Shelf & { books: Book[] } }` |
-| PATCH | `/api/shelves/:id` | owner | `{ name }` | `200 { data: Shelf }` |
-| DELETE | `/api/shelves/:id` | owner | — | `204` |
-| POST | `/api/shelves/:id/books` | owner | `{ bookId }` | `200 { data: Shelf }` (add book to shelf) |
-| DELETE | `/api/shelves/:id/books/:bookId` | owner | — | `204` (remove book from shelf) |
+| Method | Path                             | Auth  | Request body | Response                                  |
+| ------ | -------------------------------- | ----- | ------------ | ----------------------------------------- |
+| GET    | `/api/shelves`                   | user  | —            | `200 { data: Shelf[] }`                   |
+| POST   | `/api/shelves`                   | user  | `{ name }`   | `201 { data: Shelf }`                     |
+| GET    | `/api/shelves/:id`               | owner | —            | `200 { data: Shelf & { books: Book[] } }` |
+| PATCH  | `/api/shelves/:id`               | owner | `{ name }`   | `200 { data: Shelf }`                     |
+| DELETE | `/api/shelves/:id`               | owner | —            | `204`                                     |
+| POST   | `/api/shelves/:id/books`         | owner | `{ bookId }` | `200 { data: Shelf }` (add book to shelf) |
+| DELETE | `/api/shelves/:id/books/:bookId` | owner | —            | `204` (remove book from shelf)            |
 
 Lifecycle filtering (want-to-read / reading / finished / abandoned) is
 `GET /api/books?status=…`, not a shelf.
@@ -180,27 +180,27 @@ or **write** access to a specific shelf. Planned model — a `ShelfShare` join
 account-link / invite-accept flow. Deferred from the current migration; the
 endpoints below are indicative.
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/shelves/:id/shares` | owner | — | `200 { data: ShelfShare[] }` |
-| POST | `/api/shelves/:id/shares` | owner | `{ email, accessLevel }` | `201 { data: ShelfShare }` (invite) |
-| DELETE | `/api/shelves/:id/shares/:userId` | owner | — | `204` (revoke) |
+| Method | Path                              | Auth  | Request body             | Response                            |
+| ------ | --------------------------------- | ----- | ------------------------ | ----------------------------------- |
+| GET    | `/api/shelves/:id/shares`         | owner | —                        | `200 { data: ShelfShare[] }`        |
+| POST   | `/api/shelves/:id/shares`         | owner | `{ email, accessLevel }` | `201 { data: ShelfShare }` (invite) |
+| DELETE | `/api/shelves/:id/shares/:userId` | owner | —                        | `204` (revoke)                      |
 
 ### Analytics — 🔶 scaffolded (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/analytics` | user | — | `200 { data: { totalBooks, byStatus, byGenre, averageRating, finishedThisYear } }` |
+| Method | Path             | Auth | Request body | Response                                                                           |
+| ------ | ---------------- | ---- | ------------ | ---------------------------------------------------------------------------------- |
+| GET    | `/api/analytics` | user | —            | `200 { data: { totalBooks, byStatus, byGenre, averageRating, finishedThisYear } }` |
 
 ### AI discovery — 🔶 scaffolded (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| POST | `/api/ai/taste-profile/refresh` | user | — | `200 { data: { refreshedAt, aggregatedData } }` |
-| GET | `/api/ai/taste-profile` | user | — | `200 { data: TasteProfile }` |
-| POST | `/api/ai/discovery-report` | user | `{ moodModifier? }` | `201 { data: DiscoveryReport & { items: RecommendationItem[] } }` |
-| GET | `/api/ai/discovery-reports` | user | — | `200 { data: DiscoveryReport[] }` |
-| GET | `/api/ai/discovery-report/:id` | owner | — | `200 { data: DiscoveryReport & { items } }` |
+| Method | Path                            | Auth  | Request body        | Response                                                          |
+| ------ | ------------------------------- | ----- | ------------------- | ----------------------------------------------------------------- |
+| POST   | `/api/ai/taste-profile/refresh` | user  | —                   | `200 { data: { refreshedAt, aggregatedData } }`                   |
+| GET    | `/api/ai/taste-profile`         | user  | —                   | `200 { data: TasteProfile }`                                      |
+| POST   | `/api/ai/discovery-report`      | user  | `{ moodModifier? }` | `201 { data: DiscoveryReport & { items: RecommendationItem[] } }` |
+| GET    | `/api/ai/discovery-reports`     | user  | —                   | `200 { data: DiscoveryReport[] }`                                 |
+| GET    | `/api/ai/discovery-report/:id`  | owner | —                   | `200 { data: DiscoveryReport & { items } }`                       |
 
 ### Contributors — 🔶 scaffolded (folds into Shelf sharing)
 
@@ -209,19 +209,19 @@ the users who share view/write access to a shelf. It is being subsumed by the
 Shelf sharing design above; the standalone route likely reduces to "people I
 share shelves with".
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/contributors` | user | — | `200 { data: Contributor[] }` (collaborators across the user's shared shelves) |
+| Method | Path                | Auth | Request body | Response                                                                       |
+| ------ | ------------------- | ---- | ------------ | ------------------------------------------------------------------------------ |
+| GET    | `/api/contributors` | user | —            | `200 { data: Contributor[] }` (collaborators across the user's shared shelves) |
 
 ### Admin — 🔶 scaffolded (Admin-only, `role = admin`)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/admin/users` | admin | — | `200 { data: User[] }` |
-| GET | `/api/admin/users/:id` | admin | — | `200 { data: User }` |
-| PATCH | `/api/admin/users/:id` | admin | `{ role?, emailVerified? }` | `200 { data: User }` |
-| DELETE | `/api/admin/users/:id` | admin | — | `204` |
-| GET | `/api/admin/stats` | admin | — | `200 { data: { userCount, bookCount, reportCount } }` |
+| Method | Path                   | Auth  | Request body                | Response                                              |
+| ------ | ---------------------- | ----- | --------------------------- | ----------------------------------------------------- |
+| GET    | `/api/admin/users`     | admin | —                           | `200 { data: User[] }`                                |
+| GET    | `/api/admin/users/:id` | admin | —                           | `200 { data: User }`                                  |
+| PATCH  | `/api/admin/users/:id` | admin | `{ role?, emailVerified? }` | `200 { data: User }`                                  |
+| DELETE | `/api/admin/users/:id` | admin | —                           | `204`                                                 |
+| GET    | `/api/admin/stats`     | admin | —                           | `200 { data: { userCount, bookCount, reportCount } }` |
 
 > **Note — Contributors → Shelf sharing.** Originally a placeholder; per review it
 > is the shelf-collaborators concept (people with shared view/write access). Its
@@ -261,7 +261,7 @@ share shelves with".
   reading data are never transmitted to a third-party model or external API. This
   is a deliberate advantage of the self-hosted choice, not an incidental one.
 - **Third-party calls that do go out.** Only the Open Library Subjects API — a
-  free, unauthenticated, read-only lookup that receives *subject/genre keywords*,
+  free, unauthenticated, read-only lookup that receives _subject/genre keywords_,
   never the user's journal content. Requests carry a descriptive `User-Agent` per
   Open Library's guidance.
 - **Secrets & addresses.** No credentials are committed. The Ollama LAN address

@@ -36,7 +36,10 @@ export async function fetchSubjectWorks(
     throw createError(`Open Library request failed for "${subject}"`, 502);
   }
   if (!res.ok) {
-    throw createError(`Open Library returned ${res.status} for "${subject}"`, 502);
+    throw createError(
+      `Open Library returned ${res.status} for "${subject}"`,
+      502,
+    );
   }
   const body = (await res.json()) as { works?: OpenLibraryWork[] };
   return body.works ?? [];

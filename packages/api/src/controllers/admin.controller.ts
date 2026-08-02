@@ -16,7 +16,11 @@ export const adminController = {
     }
   },
 
-  async getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getUser(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const user = await adminService.getUser(req.params.id as string);
       res.json({ data: user });

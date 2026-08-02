@@ -140,7 +140,11 @@ export const booksService = {
     return prisma.journalEntry.findUnique({ where: { bookId } });
   },
 
-  async upsertJournal(userId: string, bookId: string, input: JournalEntryInput) {
+  async upsertJournal(
+    userId: string,
+    bookId: string,
+    input: JournalEntryInput,
+  ) {
     const book = await this.getOwned(userId, bookId);
     if (book.status !== "FINISHED") {
       throw createError(

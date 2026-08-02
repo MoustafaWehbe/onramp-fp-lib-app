@@ -25,7 +25,10 @@ async function registerAndLogin(
   const login = await request(app)
     .post("/api/auth/login")
     .send({ email, password: "SecurePass1" });
-  return { id: reg.body.data.id as string, cookie: getCookie(login, "accessToken") as string };
+  return {
+    id: reg.body.data.id as string,
+    cookie: getCookie(login, "accessToken") as string,
+  };
 }
 
 async function resetDb() {
@@ -294,9 +297,9 @@ describe("Shelf sharing + contributors (integration, real database)", () => {
       .set("Cookie", bobCookie)
       .send({ bookId: bobBookId });
     expect(added.status).toBe(200);
-    expect(
-      added.body.data.books.map((b: { id: string }) => b.id),
-    ).toContain(bobBookId);
+    expect(added.body.data.books.map((b: { id: string }) => b.id)).toContain(
+      bobBookId,
+    );
 
     const removed = await request(app)
       .delete(`/api/contributors/shelves/${shelfId}/books/${bobBookId}`)

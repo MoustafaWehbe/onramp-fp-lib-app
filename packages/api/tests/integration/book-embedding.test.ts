@@ -52,7 +52,9 @@ describe("embedBook — embedding pipeline", () => {
         bookId: book.id,
         userId: user.id,
         reflectionText: "Quiet, devastating regret.",
-        favoriteQuotes: ["He had discovered that he was thinking of nothing at all."],
+        favoriteQuotes: [
+          "He had discovered that he was thinking of nothing at all.",
+        ],
       },
     });
 
@@ -60,7 +62,9 @@ describe("embedBook — embedding pipeline", () => {
     expect(result.skipped).toBeUndefined();
     expect(result.dimensions).toBe(768);
 
-    const rows = await prisma.$queryRaw<{ dims: number; source_text: string }[]>`
+    const rows = await prisma.$queryRaw<
+      { dims: number; source_text: string }[]
+    >`
       SELECT vector_dims(embedding) AS dims, source_text
       FROM book_embeddings
       WHERE book_id = ${book.id}::uuid
@@ -80,13 +84,20 @@ describe("embedBook — embedding pipeline", () => {
       data: { userId: user.id, title: "T", author: "A", status: "FINISHED" },
     });
     await prisma.journalEntry.create({
-      data: { bookId: book.id, userId: user.id, reflectionText: "first", favoriteQuotes: [] },
+      data: {
+        bookId: book.id,
+        userId: user.id,
+        reflectionText: "first",
+        favoriteQuotes: [],
+      },
     });
 
     await embedBook(book.id, async () => fakeVector());
     await embedBook(book.id, async () => fakeVector());
 
-    expect(await prisma.bookEmbedding.count({ where: { bookId: book.id } })).toBe(1);
+    expect(
+      await prisma.bookEmbedding.count({ where: { bookId: book.id } }),
+    ).toBe(1);
   });
 
   it("skips a book that is not FINISHED (no row written)", async () => {
@@ -95,12 +106,19 @@ describe("embedBook — embedding pipeline", () => {
       data: { userId: user.id, title: "T", author: "A", status: "READING" },
     });
     await prisma.journalEntry.create({
-      data: { bookId: book.id, userId: user.id, reflectionText: "r", favoriteQuotes: [] },
+      data: {
+        bookId: book.id,
+        userId: user.id,
+        reflectionText: "r",
+        favoriteQuotes: [],
+      },
     });
 
     const result = await embedBook(book.id, async () => fakeVector());
     expect(result.skipped).toMatch(/not FINISHED/);
-    expect(await prisma.bookEmbedding.count({ where: { bookId: book.id } })).toBe(0);
+    expect(
+      await prisma.bookEmbedding.count({ where: { bookId: book.id } }),
+    ).toBe(0);
   });
 
   it("skips a FINISHED book that has no journal entry (no row written)", async () => {
@@ -111,6 +129,8 @@ describe("embedBook — embedding pipeline", () => {
 
     const result = await embedBook(book.id, async () => fakeVector());
     expect(result.skipped).toMatch(/no journal entry/);
-    expect(await prisma.bookEmbedding.count({ where: { bookId: book.id } })).toBe(0);
+    expect(
+      await prisma.bookEmbedding.count({ where: { bookId: book.id } }),
+    ).toBe(0);
   });
 });

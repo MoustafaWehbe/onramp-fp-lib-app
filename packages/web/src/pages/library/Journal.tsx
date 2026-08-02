@@ -191,7 +191,10 @@ export function Journal() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button onClick={save} disabled={!reflectionText.trim() || saveJournal.isPending}>
+      <Button
+        onClick={save}
+        disabled={!reflectionText.trim() || saveJournal.isPending}
+      >
         {saveJournal.isPending ? "Saving…" : "Save review"}
       </Button>
     </div>

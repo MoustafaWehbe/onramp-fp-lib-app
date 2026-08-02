@@ -36,7 +36,11 @@ function Landing() {
 function AdminRoute() {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
-  return user?.role === "admin" ? <Admin /> : <Navigate to="/library" replace />;
+  return user?.role === "admin" ? (
+    <Admin />
+  ) : (
+    <Navigate to="/library" replace />
+  );
 }
 
 export function AppRoutes() {

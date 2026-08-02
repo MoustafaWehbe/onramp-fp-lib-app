@@ -132,8 +132,6 @@ describe("Auth endpoints (integration, real database)", () => {
     ]);
 
     expect([a.status, b.status].sort()).toEqual([201, 409]);
-    expect(
-      await prisma.user.count({ where: { email: racer.email } }),
-    ).toBe(1);
+    expect(await prisma.user.count({ where: { email: racer.email } })).toBe(1);
   });
 });

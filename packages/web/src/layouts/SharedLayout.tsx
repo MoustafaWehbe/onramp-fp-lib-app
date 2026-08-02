@@ -12,7 +12,10 @@ export function SharedLayout() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border/70 bg-background">
         <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-6 px-12">
-          <Link to="/library" className="font-display text-xl italic text-foreground">
+          <Link
+            to="/library"
+            className="font-display text-xl italic text-foreground"
+          >
             Folio
           </Link>
           <span className="flex h-16 items-center border-b-2 border-primary text-sm font-semibold text-foreground">

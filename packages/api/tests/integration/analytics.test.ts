@@ -39,28 +39,70 @@ beforeAll(async () => {
   // Seed a small library directly (Books CRUD is a separate branch).
   const [a, b, c] = await Promise.all([
     prisma.book.create({
-      data: { userId, title: "A", author: "X", genre: "Science Fiction", status: "FINISHED" },
+      data: {
+        userId,
+        title: "A",
+        author: "X",
+        genre: "Science Fiction",
+        status: "FINISHED",
+      },
     }),
     prisma.book.create({
-      data: { userId, title: "B", author: "Y", genre: "Science Fiction", status: "FINISHED" },
+      data: {
+        userId,
+        title: "B",
+        author: "Y",
+        genre: "Science Fiction",
+        status: "FINISHED",
+      },
     }),
     prisma.book.create({
-      data: { userId, title: "C", author: "Z", genre: "Fantasy", status: "FINISHED" },
+      data: {
+        userId,
+        title: "C",
+        author: "Z",
+        genre: "Fantasy",
+        status: "FINISHED",
+      },
     }),
   ]);
   await prisma.book.create({
-    data: { userId, title: "D", author: "W", genre: "Fantasy", status: "READING" },
+    data: {
+      userId,
+      title: "D",
+      author: "W",
+      genre: "Fantasy",
+      status: "READING",
+    },
   });
 
   await Promise.all([
     prisma.journalEntry.create({
-      data: { bookId: a.id, userId, reflectionText: "a", favoriteQuotes: [], rating: 5 },
+      data: {
+        bookId: a.id,
+        userId,
+        reflectionText: "a",
+        favoriteQuotes: [],
+        rating: 5,
+      },
     }),
     prisma.journalEntry.create({
-      data: { bookId: b.id, userId, reflectionText: "b", favoriteQuotes: [], rating: 3 },
+      data: {
+        bookId: b.id,
+        userId,
+        reflectionText: "b",
+        favoriteQuotes: [],
+        rating: 3,
+      },
     }),
     prisma.journalEntry.create({
-      data: { bookId: c.id, userId, reflectionText: "c", favoriteQuotes: [], rating: 4 },
+      data: {
+        bookId: c.id,
+        userId,
+        reflectionText: "c",
+        favoriteQuotes: [],
+        rating: 4,
+      },
     }),
   ]);
 

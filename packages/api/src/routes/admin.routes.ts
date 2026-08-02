@@ -12,7 +12,11 @@ router.use(authenticate, authorize("admin"));
 
 router.get("/users", adminController.listUsers);
 router.get("/users/:id", adminController.getUser);
-router.patch("/users/:id", validate(updateUserSchema), adminController.updateUser);
+router.patch(
+  "/users/:id",
+  validate(updateUserSchema),
+  adminController.updateUser,
+);
 router.delete("/users/:id", adminController.deleteUser);
 router.get("/stats", adminController.stats);
 router.get("/audit", adminController.auditLog);

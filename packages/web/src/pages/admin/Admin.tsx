@@ -342,12 +342,19 @@ function AuditLog() {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-b border-border/50 align-top">
+                <tr
+                  key={entry.id}
+                  className="border-b border-border/50 align-top"
+                >
                   <td className="whitespace-nowrap py-2 font-mono text-xs text-muted-foreground">
                     {new Date(entry.createdAt).toLocaleString()}
                   </td>
-                  <td className="py-2 pr-3 text-foreground">{entry.actorEmail}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{entry.action}</td>
+                  <td className="py-2 pr-3 text-foreground">
+                    {entry.actorEmail}
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs">
+                    {entry.action}
+                  </td>
                   <td className="py-2 pr-3 text-muted-foreground">
                     {entry.targetEmail ?? "—"}
                   </td>

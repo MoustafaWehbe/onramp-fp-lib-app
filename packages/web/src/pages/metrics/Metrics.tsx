@@ -62,11 +62,16 @@ export function Metrics() {
   }
 
   // Top four genres get their own segment; the tail folds into "Everything else".
-  const sortedGenres = [...data.genreBreakdown].sort((a, b) => b.count - a.count);
+  const sortedGenres = [...data.genreBreakdown].sort(
+    (a, b) => b.count - a.count,
+  );
   const restCount = sortedGenres.slice(4).reduce((sum, g) => sum + g.count, 0);
   const segments =
     restCount > 0
-      ? [...sortedGenres.slice(0, 4), { genre: "Everything else", count: restCount }]
+      ? [
+          ...sortedGenres.slice(0, 4),
+          { genre: "Everything else", count: restCount },
+        ]
       : sortedGenres.slice(0, 4);
   let acc = 0;
   const donutStops = segments
@@ -175,7 +180,9 @@ export function Metrics() {
 
       {totalGenre > 0 && (
         <section className="space-y-5 rounded-xl border border-border bg-card p-7">
-          <h2 className="font-display text-xl text-foreground">Where you read</h2>
+          <h2 className="font-display text-xl text-foreground">
+            Where you read
+          </h2>
           <div className="flex flex-wrap items-center gap-7">
             <div
               className="flex h-[150px] w-[150px] flex-shrink-0 items-center justify-center rounded-full"
@@ -194,7 +201,10 @@ export function Metrics() {
             </div>
             <div className="space-y-2.5">
               {segments.map((s, i) => (
-                <div key={s.genre} className="flex items-center gap-2.5 text-sm">
+                <div
+                  key={s.genre}
+                  className="flex items-center gap-2.5 text-sm"
+                >
                   <span
                     className="h-2.5 w-2.5 rounded-[2px]"
                     style={{ backgroundColor: DONUT_COLORS[i] }}
