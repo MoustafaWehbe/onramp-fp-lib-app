@@ -29,7 +29,7 @@ export function SharedShelfDetail() {
 
   // A failed query must not fall through to "this shelf isn't shared with
   // you" below — that would misreport a revocation that never happened.
-  if (isError) {
+  if (isError && !shelves) {
     return (
       <EmptyState
         title="Shared shelves wouldn’t load."

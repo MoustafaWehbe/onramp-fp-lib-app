@@ -9,6 +9,7 @@ import {
   type CatalogResult,
 } from "../../components/folio/CatalogSearch";
 import { EmptyState } from "../../components/folio/EmptyState";
+import { Shimmer } from "../../components/folio/Shimmer";
 import { CoverDropzone } from "../../components/folio/CoverDropzone";
 import {
   READING_STATUSES,
@@ -35,6 +36,7 @@ export function AddBook() {
   const updateBook = useUpdateBook();
   const {
     data: existing,
+    isLoading: loadPending,
     isError: loadError,
     refetch: refetchExisting,
   } = useBook(isEdit ? id : undefined);
@@ -122,7 +124,8 @@ export function AddBook() {
 
   // Editing a book that failed to load would present a blank create form for
   // a book that exists — state the failure instead of the misleading form.
-  if (isEdit && loadError) {
+  // Cached data wins over a failed background refetch (stale beats blank).
+  if (isEdit && loadError && !existing) {
     return (
       <EmptyState
         title="This book wouldn’t open for editing."
@@ -133,6 +136,17 @@ export function AddBook() {
           </Button>
         }
       />
+    );
+  }
+
+  // Never show the blank form while the book is still on its way — typing
+  // into it would be overwritten by hydration when the data lands.
+  if (isEdit && loadPending) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4">
+        <Shimmer className="h-10 w-56" />
+        <Shimmer className="h-64 w-full" />
+      </div>
     );
   }
 

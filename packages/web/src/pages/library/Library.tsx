@@ -151,7 +151,7 @@ export function Library() {
         </div>
       )}
 
-      {isError ? (
+      {isError && !books ? (
         // A failed query must not fall through to the empty states below —
         // "Your shelf is waiting" would be a lie about a library that exists.
         <EmptyState
@@ -171,8 +171,10 @@ export function Library() {
             <BookCard key={book.id} book={book} />
           ))}
         </div>
-      ) : total === 0 ? (
-        // A3 — first-run empty library.
+      ) : allBooks && total === 0 ? (
+        // A3 — first-run empty library. Gated on the unfiltered query having
+        // ANSWERED zero: if it failed, we fall to filtered-empty below rather
+        // than claim a library we couldn't count is empty.
         <EmptyState
           title="Your shelf is waiting."
           line="Add the book on your night table, or the one you finished last month. This library is yours alone — no one is watching it fill up."

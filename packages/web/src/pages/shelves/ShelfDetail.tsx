@@ -53,7 +53,7 @@ export function ShelfDetail() {
   const [shareError, setShareError] = useState<string | null>(null);
 
   // A settled failure must not read as loading — the eternal-skeleton trap.
-  if (isError) {
+  if (isError && !shelf) {
     return (
       <EmptyState
         title="This shelf wouldn’t open."

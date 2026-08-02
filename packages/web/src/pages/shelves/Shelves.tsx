@@ -215,7 +215,7 @@ export function Shelves() {
         </form>
       )}
 
-      {isError ? (
+      {isError && !shelves ? (
         // A failed query must not fall through to the create-your-first-shelf
         // empty state — that would misreport shelves that exist.
         <EmptyState

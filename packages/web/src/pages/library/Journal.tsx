@@ -105,7 +105,7 @@ export function Journal() {
 
   // A settled failure must not read as loading — nothing written is at risk,
   // but the page has to say the book couldn't be reached.
-  if (isError) {
+  if (isError && !book) {
     return (
       <EmptyState
         title="This book wouldn’t open."

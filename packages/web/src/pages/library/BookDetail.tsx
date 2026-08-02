@@ -30,7 +30,7 @@ export function BookDetail() {
   const addToShelf = useAddBookToAnyShelf();
 
   // A settled failure must not read as loading — the eternal-skeleton trap.
-  if (isError) {
+  if (isError && !book) {
     return (
       <EmptyState
         title="This book wouldn’t open."

@@ -278,7 +278,7 @@ export function SharedShelves() {
         </p>
       )}
 
-      {isError ? (
+      {isError && !shelves ? (
         // A failed query must not fall through to "nothing shared with you".
         <EmptyState
           title="Shared shelves wouldn’t load."

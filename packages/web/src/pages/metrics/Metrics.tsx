@@ -30,7 +30,7 @@ export function Metrics() {
   const { data: reading } = useBooks({ status: "READING" });
 
   // A settled failure must not read as loading — state it, offer a retry.
-  if (isError) {
+  if (isError && !data) {
     return (
       <EmptyState
         title="The numbers wouldn’t load."
