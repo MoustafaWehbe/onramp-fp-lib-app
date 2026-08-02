@@ -99,13 +99,26 @@ export function Discover() {
             {Math.min(finishedCount, goal)} of {goal} finished books
           </p>
         </div>
+        {/* The try-anyway path fails BACK INTO this early return — without
+            this line the failure message was set and never rendered, and the
+            click appeared to do nothing. */}
+        {error && (
+          <div className="space-y-2 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4 text-left">
+            <p className="text-sm font-semibold text-destructive">
+              That didn&rsquo;t work.
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {error}
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-3">
           <Link to="/library" className={buttonVariants()}>
             Go to your library
           </Link>
           {canGenerate && (
             <Button variant="ghost" onClick={() => run()}>
-              Try a report anyway
+              {error ? "Try again" : "Try a report anyway"}
             </Button>
           )}
         </div>
@@ -218,7 +231,17 @@ export function Discover() {
         </section>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {/* Same failure register as the empty state — the mood path lands here. */}
+      {error && (
+        <div className="space-y-1.5 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm font-semibold text-destructive">
+            That didn&rsquo;t work.
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {error}
+          </p>
+        </div>
+      )}
 
       {report && !generate.isPending && (
         <section className="space-y-6">
