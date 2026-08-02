@@ -78,6 +78,9 @@ export function MoodShelf() {
   const [result, setResult] = useState<MoodShelfResult | null>(null);
   const [failed, setFailed] = useState(false);
   const [keeping, setKeeping] = useState(false);
+  // Failing to SAVE a built shelf is not the same as failing to BUILD one —
+  // the results must stay on screen, with the error beside the keep button.
+  const [keepError, setKeepError] = useState<string | null>(null);
   // Cancel discards the in-flight build: only the latest request may land.
   const requestSeq = useRef(0);
 
@@ -86,6 +89,7 @@ export function MoodShelf() {
     if (!trimmed) return;
     setMood(trimmed);
     setFailed(false);
+    setKeepError(null);
     setResult(null);
     const seq = ++requestSeq.current;
     try {
@@ -104,6 +108,7 @@ export function MoodShelf() {
   async function keepAsShelf() {
     if (result?.status !== "ok" || keeping) return;
     setKeeping(true);
+    setKeepError(null);
     try {
       const shelf = await createShelf.mutateAsync({
         name: result.title.slice(0, 120),
@@ -113,9 +118,15 @@ export function MoodShelf() {
         await apiClient.post(`/shelves/${shelf.id}/books`, { bookId: item.id });
       }
       navigate(`/shelves/${shelf.id}`);
-    } catch {
+    } catch (err) {
       setKeeping(false);
-      setFailed(true);
+      const status = (err as { response?: { status?: number } }).response
+        ?.status;
+      setKeepError(
+        status === 409
+          ? "You already have a shelf with this name — it may hold these books."
+          : "Couldn't save the shelf just now. The picks are still here — try again.",
+      );
     }
   }
 
@@ -246,13 +257,26 @@ export function MoodShelf() {
               it&rsquo;s a suggestion, not a reading list.
             </p>
           </div>
-          <div className="flex gap-2.5">
-            <Button variant="outline" onClick={() => setResult(null)}>
-              Try another mood
-            </Button>
-            <Button onClick={keepAsShelf} disabled={keeping}>
-              {keeping ? "Keeping…" : "Keep as a shelf"}
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex gap-2.5">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setKeepError(null);
+                  setResult(null);
+                }}
+              >
+                Try another mood
+              </Button>
+              <Button onClick={keepAsShelf} disabled={keeping}>
+                {keeping ? "Keeping…" : "Keep as a shelf"}
+              </Button>
+            </div>
+            {keepError && (
+              <p className="max-w-xs text-right text-xs text-destructive">
+                {keepError}
+              </p>
+            )}
           </div>
         </header>
 

@@ -112,6 +112,7 @@ export function SharedShelves() {
   const { data: sentBooks } = useSentBookShares();
   const revoke = useRevokeBookShare();
   const respond = useRespondToInvite();
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   return (
     <div className="space-y-8">
@@ -217,14 +218,28 @@ export function SharedShelves() {
                   </p>
                 </div>
                 <button
-                  onClick={() => revoke.mutate(s.shareId)}
-                  disabled={revoke.isPending}
-                  className="shrink-0 text-xs font-medium text-primary hover:text-accent-foreground"
+                  onClick={() => {
+                    setRevokeError(null);
+                    revoke.mutate(s.shareId, {
+                      onError: () =>
+                        setRevokeError(
+                          `Couldn't take back "${s.book.title}" — it's still shared. Try again.`,
+                        ),
+                    });
+                  }}
+                  // Pending is per row: only the share being revoked waits.
+                  disabled={revoke.isPending && revoke.variables === s.shareId}
+                  className="shrink-0 text-xs font-medium text-primary hover:text-accent-foreground disabled:opacity-60"
                 >
-                  Take it back
+                  {revoke.isPending && revoke.variables === s.shareId
+                    ? "Taking back…"
+                    : "Take it back"}
                 </button>
               </div>
             ))}
+            {revokeError && (
+              <p className="text-xs text-destructive">{revokeError}</p>
+            )}
           </div>
         ) : (
           <div className="space-y-3 rounded-[var(--radius)] border border-border bg-card p-6">

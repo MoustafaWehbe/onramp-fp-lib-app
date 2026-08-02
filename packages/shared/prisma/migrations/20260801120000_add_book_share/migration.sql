@@ -13,6 +13,9 @@ CREATE TABLE "book_shares" (
 CREATE INDEX "book_shares_recipient_id_idx" ON "book_shares"("recipient_id");
 
 -- CreateIndex
+CREATE INDEX "book_shares_sender_id_idx" ON "book_shares"("sender_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "book_shares_book_id_recipient_id_key" ON "book_shares"("book_id", "recipient_id");
 
 -- AddForeignKey

@@ -64,6 +64,9 @@ export const journalEntrySchema = z.object({
   rating: z.number().int().min(1).max(5).optional(),
 });
 
+/** For routes whose :id feeds a raw-SQL `::uuid` cast (see shares). */
+export const bookIdParamSchema = z.object({ id: z.string().uuid() });
+
 export type CreateBookInput = z.infer<typeof createBookSchema>;
 export type UpdateBookInput = z.infer<typeof updateBookSchema>;
 export type ListBooksQuery = z.infer<typeof listBooksQuerySchema>;

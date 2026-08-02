@@ -100,12 +100,17 @@ export async function searchMemory(
 
   if (queryVec) {
     const vectorLiteral = `[${queryVec.join(",")}]`;
+    // Restrict the vector scan to books that actually have a journal entry
+    // BEFORE the LIMIT — otherwise embedded-but-unreflected books consume
+    // result slots and real matches past the cutoff are silently lost.
+    const bookIds = entries.map((e) => e.bookId);
     const rows = await prisma.$queryRaw<
       { book_id: string; similarity: number }[]
     >`
       SELECT book_id, 1 - (embedding <=> ${vectorLiteral}::vector) AS similarity
       FROM book_embeddings
       WHERE user_id = ${userId}::uuid AND embedding IS NOT NULL
+        AND book_id = ANY(${bookIds}::uuid[])
       ORDER BY embedding <=> ${vectorLiteral}::vector
       LIMIT ${MAX_HITS}
     `;

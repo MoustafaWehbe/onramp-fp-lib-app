@@ -250,14 +250,16 @@ export function Memory() {
                         {formatEntryDate(h.entryDate)}
                       </span>
                     </p>
+                    {/* The service already adds truncation ellipses where the
+                        text was actually cut — none are added here. */}
                     <p className="font-display text-[1.05rem] leading-relaxed text-foreground/90">
-                      …{h.pre}
+                      {h.pre}
                       {h.hit && (
                         <mark className="rounded-sm bg-accent px-0.5 text-accent-foreground">
                           {h.hit}
                         </mark>
                       )}
-                      {h.post}…
+                      {h.post}
                     </p>
                     <div className="flex gap-4 pt-0.5">
                       <Link

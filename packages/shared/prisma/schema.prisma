@@ -239,6 +239,7 @@ model BookShare {
 
   @@unique([bookId, recipientId])
   @@index([recipientId])
+  @@index([senderId])
   @@map("book_shares")
 }
 

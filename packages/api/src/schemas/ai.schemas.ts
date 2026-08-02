@@ -12,5 +12,8 @@ export const memorySearchSchema = z.object({
   query: z.string().trim().min(1).max(300),
 });
 
+/** Validated ahead of the service so a malformed id is a 422, not a 500. */
+export const bookIdParamSchema = z.object({ bookId: z.string().uuid() });
+
 export type MoodShelfInput = z.infer<typeof moodShelfSchema>;
 export type MemorySearchInput = z.infer<typeof memorySearchSchema>;

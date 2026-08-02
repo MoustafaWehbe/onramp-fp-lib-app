@@ -19,3 +19,7 @@ export const shareBookSchema = z.object({
 });
 
 export type ShareBookInput = z.infer<typeof shareBookSchema>;
+
+/** Route params feeding `::uuid` casts must be validated first, or a
+ *  malformed id becomes a Postgres cast error surfacing as a 500. */
+export const shareIdParamSchema = z.object({ shareId: z.string().uuid() });

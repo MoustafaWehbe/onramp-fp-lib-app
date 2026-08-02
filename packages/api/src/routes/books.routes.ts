@@ -8,6 +8,7 @@ import {
   updateBookSchema,
   listBooksQuerySchema,
   journalEntrySchema,
+  bookIdParamSchema,
 } from "../schemas/books.schemas";
 import { shareBookSchema } from "../schemas/shares.schemas";
 
@@ -31,13 +32,19 @@ router.get("/:id", booksController.get);
 router.patch("/:id", validate(updateBookSchema), booksController.update);
 router.delete("/:id", booksController.remove);
 router.get("/:id/similar", booksController.similar);
-// Design E18 — share one book with one named person; owner-scoped.
+// Design E18 — share one book with one named person; owner-scoped. These
+// routes feed :id into raw-SQL uuid casts, so the param is validated first.
 router.post(
   "/:id/share",
+  validate(bookIdParamSchema, "params"),
   validate(shareBookSchema),
   bookSharesController.share,
 );
-router.get("/:id/shares", bookSharesController.listForBook);
+router.get(
+  "/:id/shares",
+  validate(bookIdParamSchema, "params"),
+  bookSharesController.listForBook,
+);
 router.get("/:id/journal", booksController.getJournal);
 router.put(
   "/:id/journal",

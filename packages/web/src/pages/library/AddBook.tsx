@@ -39,13 +39,14 @@ export function AddBook() {
   const titleRef = useRef<HTMLInputElement>(null);
 
   // Design B6a — "Use this": the catalog row fills the manual fields, which
-  // stay fully editable afterwards.
+  // stay fully editable afterwards. Assignments are unconditional so a second
+  // pick fully replaces the first — a missing field clears, never lingers.
   function applyCatalogPick(r: CatalogResult) {
     setTitle(r.title);
     setAuthor(r.author);
-    if (r.year) setYear(String(r.year));
-    if (r.pageCount) setPageCount(String(r.pageCount));
-    if (r.coverUrl) setCoverImage(r.coverUrl);
+    setYear(r.year ? String(r.year) : "");
+    setPageCount(r.pageCount ? String(r.pageCount) : "");
+    setCoverImage(r.coverUrl ?? "");
     setOpenLibraryId(r.openLibraryId);
     titleRef.current?.focus();
   }
@@ -132,7 +133,12 @@ export function AddBook() {
               id="title"
               ref={titleRef}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                // Edited away from the catalog pick — it's a manual entry now,
+                // and keeping the id would dedup against the wrong book.
+                setOpenLibraryId(null);
+              }}
               placeholder="The Peregrine Notebooks"
               className="bg-card"
             />
@@ -143,7 +149,10 @@ export function AddBook() {
             <Input
               id="author"
               value={author}
-              onChange={(e) => setAuthor(e.target.value)}
+              onChange={(e) => {
+                setAuthor(e.target.value);
+                setOpenLibraryId(null);
+              }}
               placeholder="R. F. Caldwell"
               className="bg-card"
             />

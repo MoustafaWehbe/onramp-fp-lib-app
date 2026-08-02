@@ -104,10 +104,12 @@ export const aiController = {
     next: NextFunction,
   ): Promise<void> {
     try {
+      const currentYear = new Date().getUTCFullYear();
       const parsed = Number.parseInt(String(req.query.year ?? ""), 10);
+      // Clamp instead of erroring: an out-of-range year has an obvious intent.
       const year = Number.isFinite(parsed)
-        ? parsed
-        : new Date().getUTCFullYear();
+        ? Math.min(Math.max(parsed, 1900), currentYear)
+        : currentYear;
       const result = await yearInReading(req.user!.userId, year);
       res.json({ data: result });
     } catch (err) {
