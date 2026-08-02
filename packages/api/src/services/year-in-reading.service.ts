@@ -18,6 +18,7 @@ Output ONLY valid JSON, nothing else:
  "headline": "<card headline, under 9 words, e.g. '31 books, and a turn toward poetry'>"
 }`;
 
+/** Injectable generation call, so tests can run without an Ollama host. */
 export interface YearInReadingDeps {
   generate: (messages: ChatMessage[]) => Promise<string>;
 }
@@ -26,6 +27,7 @@ const defaultDeps: YearInReadingDeps = {
   generate: (messages) => chatCompletion(messages),
 };
 
+/** Everything read straight off the shelves — available with no model. */
 export interface YearStats {
   year: number;
   finishedCount: number;
@@ -44,12 +46,18 @@ export interface YearStats {
   bookOfTheYear: { title: string; author: string } | null;
 }
 
+/** The model-written part: shape paragraphs, three arcs, card headline. */
 export interface YearNarrative {
   shape: string[];
   arcs: { label: string; note: string }[];
   headline: string;
 }
 
+/**
+ * "tooEarly" gates thin years (fewer than `needed` finished before
+ * December). "ok" always carries the stats; `narrative` is null when the
+ * model didn't answer or returned junk — the page degrades, never blocks.
+ */
 export type YearInReadingResult =
   | { status: "tooEarly"; year: number; finishedCount: number; needed: number }
   | {

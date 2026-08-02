@@ -23,6 +23,7 @@ Task: for each match, write ONE short sentence (under 20 words) on why it echoes
 Output ONLY valid JSON, nothing else:
 {"whys":[{"title":"<verbatim match title>","why":"<one sentence>"}]}`;
 
+/** Injectable AI calls, so tests can run without an Ollama host. */
 export interface SimilarBooksDeps {
   embed: (text: string) => Promise<number[]>;
   generate: (messages: ChatMessage[]) => Promise<string>;
@@ -33,6 +34,7 @@ const defaultDeps: SimilarBooksDeps = {
   generate: (messages) => chatCompletion(messages),
 };
 
+/** One neighbour card: a book the reader owns, with a one-line "why". */
 export interface SimilarBookItem {
   id: string;
   title: string;
@@ -43,6 +45,11 @@ export interface SimilarBookItem {
   why: string;
 }
 
+/**
+ * "ok" carries up to three neighbours; "thin" means fewer than `needed`
+ * embedded books exist and the section should show the build-your-library
+ * nudge instead. Engine-down is not a status — it surfaces as a 503.
+ */
 export interface SimilarBooksResult {
   status: "ok" | "thin";
   /** How many of the reader's books are embedded (finished + journaled). */

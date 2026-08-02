@@ -29,6 +29,7 @@ export interface SharedBookView {
   };
 }
 
+/** A share as the SENDER sees it: who has the book, and since when. */
 export interface SentShareView {
   shareId: string;
   sharedAt: Date;
@@ -41,6 +42,12 @@ export interface SentShareView {
   };
 }
 
+/**
+ * Design E18 — sharing one book with one named person. Every method is
+ * scoped to the caller (owner for share/list/revoke, recipient for
+ * received), and the recipient projection never selects the owner's
+ * journal, rating, status, or dates — the boundary is the SELECT list.
+ */
 export const bookSharesService = {
   /**
    * Share one owned book with one named, existing reader. No link, no public

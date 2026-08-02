@@ -31,6 +31,7 @@ Hard rules:
 - Output ONLY valid JSON, nothing else:
 {"title":"<shelf name>","picks":[{"title":"<verbatim>","why":"<one line>"}]}`;
 
+/** Injectable AI calls, so tests can run without an Ollama host. */
 export interface MoodShelfDeps {
   embed: (text: string) => Promise<number[]>;
   embedMany: (texts: string[]) => Promise<number[][]>;
@@ -43,6 +44,7 @@ const defaultDeps: MoodShelfDeps = {
   generate: (messages) => chatCompletion(messages),
 };
 
+/** One pick on a built (not yet kept) shelf, with its grounded why-line. */
 export interface MoodShelfItem {
   id: string;
   title: string;
@@ -54,6 +56,12 @@ export interface MoodShelfItem {
   why: string;
 }
 
+/**
+ * "thin" = too few embedded books to read a taste from (the caller may
+ * retry with force). "ok" = a named shelf of picks. Model misbehaviour
+ * degrades to the retrieval ranking rather than an error; only an
+ * unreachable Ollama host throws (503).
+ */
 export type MoodShelfResult =
   | { status: "thin"; embeddedCount: number; needed: number }
   | { status: "ok"; title: string; items: MoodShelfItem[] };

@@ -12,6 +12,7 @@ Task: write EXACTLY ${PROMPT_COUNT} short prompts (each under 14 words) that cou
 Output ONLY valid JSON, nothing else:
 {"prompts":["...","...","..."]}`;
 
+/** Injectable generation call, so tests can run without an Ollama host. */
 export interface JournalPromptsDeps {
   generate: (messages: ChatMessage[]) => Promise<string>;
 }

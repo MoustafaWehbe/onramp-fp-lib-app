@@ -8,11 +8,13 @@ const MAX_HITS = 5;
 /** Characters of context on either side of a highlighted hit. */
 const SNIPPET_RADIUS = 130;
 
+/** The G19 hero counts: entries with text, and their total word count. */
 export interface MemoryOverview {
   entryCount: number;
   wordCount: number;
 }
 
+/** One matched reflection, with a snippet split around the highlight span. */
 export interface MemoryHit {
   bookId: string;
   bookTitle: string;
@@ -26,6 +28,11 @@ export interface MemoryHit {
   similarity: number | null;
 }
 
+/**
+ * The search answer plus which capability produced it: "semantic" when the
+ * embedding host answered, "exact" when it degraded to plain word matching —
+ * the page renders the offline banner from this flag, never an error state.
+ */
 export interface MemorySearchResult {
   /** "semantic" when the embedding host answered; "exact" is the degraded mode. */
   mode: "semantic" | "exact";
@@ -33,6 +40,7 @@ export interface MemorySearchResult {
   hits: MemoryHit[];
 }
 
+/** Injectable embedding call, so tests can run without an Ollama host. */
 export interface MemorySearchDeps {
   embed: (text: string) => Promise<number[]>;
 }

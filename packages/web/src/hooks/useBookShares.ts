@@ -42,6 +42,11 @@ export function useReceivedBookShares() {
   });
 }
 
+/**
+ * Send one book to one named, existing reader by exact email. Failures
+ * (no account, duplicate, self-share) surface as the server's message —
+ * the dialog shows it beside the input; nothing is sent on error.
+ */
 export function useShareBook(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -57,6 +62,7 @@ export function useShareBook(bookId: string) {
   });
 }
 
+/** "Take it back": deletes the share; silent for the recipient by design. */
 export function useRevokeBookShare() {
   const qc = useQueryClient();
   return useMutation({

@@ -7,6 +7,7 @@ import type {
   ReadingStatus,
 } from "../lib/types";
 
+/** Library list filters; empty values are stripped before the request. */
 export interface BookFilters {
   status?: ReadingStatus;
   genre?: string;
@@ -15,6 +16,7 @@ export interface BookFilters {
   sort?: string;
 }
 
+/** Create/update payload for a book — mirrors the API zod schema. */
 export interface BookInput {
   title: string;
   author: string;
@@ -35,6 +37,7 @@ function clean(filters: BookFilters) {
   );
 }
 
+/** The reader's library, filtered and sorted server-side. */
 export function useBooks(filters: BookFilters = {}) {
   return useQuery({
     queryKey: ["books", filters],
@@ -47,6 +50,7 @@ export function useBooks(filters: BookFilters = {}) {
   });
 }
 
+/** One owned book; disabled until an id exists. */
 export function useBook(id: string | undefined) {
   return useQuery({
     queryKey: ["book", id],
@@ -58,6 +62,7 @@ export function useBook(id: string | undefined) {
   });
 }
 
+/** Create a book; a 409 means the (title, author) pair already exists. */
 export function useCreateBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -69,6 +74,7 @@ export function useCreateBook() {
   });
 }
 
+/** Patch a book and refresh every view that shows it. */
 export function useUpdateBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -90,6 +96,7 @@ export function useUpdateBook() {
   });
 }
 
+/** Remove a book from the library (and, via cascade, its journal). */
 export function useDeleteBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -100,6 +107,7 @@ export function useDeleteBook() {
   });
 }
 
+/** One "books like this one" card (B7a). */
 export interface SimilarBookItem {
   id: string;
   title: string;
@@ -110,6 +118,7 @@ export interface SimilarBookItem {
   why: string;
 }
 
+/** B7a payload: "ok" with items, or "thin" until enough books are embedded. */
 export interface SimilarBooksResult {
   status: "ok" | "thin";
   embeddedCount: number;
@@ -135,6 +144,7 @@ export function useSimilarBooks(bookId: string | undefined) {
   });
 }
 
+/** The private journal entry for a book; null until one is written. */
 export function useJournal(bookId: string | undefined) {
   return useQuery({
     queryKey: ["journal", bookId],
@@ -167,12 +177,14 @@ export function useJournalPrompts(bookId: string | undefined, enabled: boolean) 
   });
 }
 
+/** Journal save payload; the API gates it behind FINISHED. */
 export interface JournalInput {
   reflectionText: string;
   favoriteQuotes?: string[];
   rating?: number;
 }
 
+/** Upsert the reflection; every save re-queues the book's embedding. */
 export function useSaveJournal(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
