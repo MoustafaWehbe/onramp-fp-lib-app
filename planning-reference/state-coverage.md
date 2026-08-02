@@ -49,8 +49,10 @@ both built (`Shelves.tsx` dashed create tile + EmptyState; `Metrics.tsx` EmptySt
 | D16 Mood thin data | too-thin | built | `MoodShelf.tsx`, "Build one anyway" |
 | D16 Mood unavailable | unavailable | built | `MoodShelf.tsx` "The shelf-builder is asleep." |
 
-Deviation noted at build time: D16's "Swap a book out" affordance is not implemented
-(the results grid links through to book detail instead).
+**Deliberate deferral — D16 "Swap a book out"**: not built, by decision rather than
+omission. It is a new mutation path (rebuild-one-slot), not a state, and was not in
+the v2 design brief for D16 (input, thinking, results, taste-too-thin). The results
+grid links through to book detail instead. Revisit only if D16 gets its own brief.
 
 ## Section E — sharing
 
@@ -80,7 +82,7 @@ Deviation noted at build time: D16's "Swap a book out" affordance is not impleme
 | G19 Memory searching | loading | built | `Memory.tsx` shimmer cards |
 | G19 Memory no matches | empty | built | `Memory.tsx`, suggestion chips |
 | G19 Memory no writing yet | empty | built | `Memory.tsx` |
-| G19 Memory unavailable | unavailable | built* | server answers `mode:"exact"` → offline banner over word-search results. The frame additionally restyles the search box with an "exact match" badge; the banner carries the message instead. A request that never reaches the server is a separate, stated failure (Part 1.5) |
+| G19 Memory unavailable | unavailable | built | server answers `mode:"exact"` → offline banner over word-search results, and the search box wears the frame's "exact match" badge (#26). A request that never reaches the server is a separate, stated failure (Part 1.5) |
 | G20 Generating | loading | built | `YearInReading.tsx` |
 | G20 Too early | too-thin | built | `YearInReading.tsx` (<10 finished before December) |
 | G20 Unavailable | unavailable | built | `YearInReading.tsx` — counts render, narrative states its absence |
@@ -103,11 +105,12 @@ F18 idiom — one plain statement, one retry, existing tokens (`EmptyState`):
 `SharedShelfDetail`, `Memory` (failed search). `Discover`'s failure renders inside its
 designed empty state.
 
-## Gaps to decide for #25 vs deferral
+## Gap decisions (resolved in #26)
 
-1. **Section F states** — all missing here; the main brief assigns them to #26 (Task 6).
-2. **G19 exact-match input badge** — the frame's in-box "exact match" treatment; the
-   offline banner covers the message today.
-3. **D16 "Swap a book out"** — absent; deliberate at build time, listed for a decision.
-4. **B6a mobile sheet chrome** — the frame draws Cancel / Add a book / Save as a sheet
-   header bar; the build keeps the form's own buttons.
+1. **Section F states** — built in #26 (status registers, audit empty, usage no-data,
+   loading, unreachable, mobile entry cards).
+2. **G19 exact-match input badge** — built in #26; the box itself wears the degraded
+   mode alongside the banner.
+3. **D16 "Swap a book out"** — deliberately deferred; see the D16 section above.
+4. **B6a mobile sheet chrome** — built in #26; Cancel / title / Save header bar under
+   640px, submitting the same form.

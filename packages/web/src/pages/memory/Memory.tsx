@@ -151,14 +151,23 @@ export function Memory() {
         {searching ? (
           <ThinkDots />
         ) : hasResult ? (
-          <button
-            type="button"
-            onClick={clear}
-            aria-label="Clear search"
-            className="px-1 text-sm text-muted-foreground/70 hover:text-foreground"
-          >
-            ✕
-          </button>
+          <>
+            {/* G19 unavailable frame: the degraded mode is worn by the box
+                itself, not just the banner. */}
+            {result.mode === "exact" && (
+              <span className="shrink-0 text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                exact match
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="Clear search"
+              className="px-1 text-sm text-muted-foreground/70 hover:text-foreground"
+            >
+              ✕
+            </button>
+          </>
         ) : (
           <Button type="submit" disabled={!query.trim()}>
             Search

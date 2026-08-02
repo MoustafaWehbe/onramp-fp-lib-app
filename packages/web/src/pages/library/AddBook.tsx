@@ -151,8 +151,32 @@ export function AddBook() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <h1 className="font-display text-[2rem] text-foreground">
+    <div className="mx-auto max-w-3xl space-y-6 sm:space-y-8">
+      {/* B6a mobile sheet chrome: Cancel / title / Save as a header bar.
+          Save submits the same form (form= attribute); the page heading
+          belongs to sm and up. */}
+      <div className="-mx-4 flex items-center justify-between border-b border-border px-4 py-1 sm:hidden">
+        <button
+          type="button"
+          onClick={() => navigate(isEdit && id ? `/books/${id}` : "/library")}
+          className="flex min-h-[44px] items-center text-sm text-muted-foreground"
+        >
+          Cancel
+        </button>
+        <span className="font-display text-lg text-foreground">
+          {isEdit ? "Edit details" : "Add a book"}
+        </span>
+        <button
+          type="submit"
+          form="book-form"
+          disabled={!canSubmit}
+          className="flex min-h-[44px] items-center text-sm font-semibold text-primary disabled:text-muted-foreground/50"
+        >
+          {pending ? "Saving…" : "Save"}
+        </button>
+      </div>
+
+      <h1 className="hidden font-display text-[2rem] text-foreground sm:block">
         {isEdit ? "Edit details" : "Add a book"}
       </h1>
 
@@ -164,7 +188,11 @@ export function AddBook() {
         />
       )}
 
-      <form onSubmit={onSubmit} className="grid gap-8 sm:grid-cols-[180px_1fr]">
+      <form
+        id="book-form"
+        onSubmit={onSubmit}
+        className="grid gap-8 sm:grid-cols-[180px_1fr]"
+      >
         {/* B6a mobile: search first, fields next, cover last. */}
         <div className="order-last sm:order-none">
           <CoverDropzone
@@ -301,7 +329,8 @@ export function AddBook() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="space-y-2 pt-2">
-            <div className="flex items-center gap-3">
+            {/* The sheet header carries Save/Cancel on phones. */}
+            <div className="hidden items-center gap-3 sm:flex">
               <Button type="submit" disabled={!canSubmit}>
                 {pending
                   ? "Saving…"
