@@ -175,7 +175,7 @@ export function AddBook() {
                 setOpenLibraryId(null);
               }}
               placeholder="The Peregrine Notebooks"
-              className="bg-card"
+              className="bg-card placeholder:text-muted-foreground/60"
             />
           </div>
 
@@ -189,7 +189,7 @@ export function AddBook() {
                 setOpenLibraryId(null);
               }}
               placeholder="R. F. Caldwell"
-              className="bg-card"
+              className="bg-card placeholder:text-muted-foreground/60"
             />
           </div>
 
@@ -201,7 +201,7 @@ export function AddBook() {
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
                 placeholder="Nature"
-                className="bg-card"
+                className="bg-card placeholder:text-muted-foreground/60"
                 list="genre-options"
               />
               <datalist id="genre-options">
@@ -218,7 +218,7 @@ export function AddBook() {
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 placeholder="2024"
-                className="bg-card"
+                className="bg-card placeholder:text-muted-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -229,7 +229,7 @@ export function AddBook() {
                 value={pageCount}
                 onChange={(e) => setPageCount(e.target.value)}
                 placeholder="312"
-                className="bg-card"
+                className="bg-card placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
@@ -286,21 +286,32 @@ export function AddBook() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" disabled={!canSubmit}>
-              {pending
-                ? "Saving…"
-                : isEdit
-                  ? "Save changes"
-                  : "Add to library"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate(isEdit && id ? `/books/${id}` : "/library")}
-            >
-              Cancel
-            </Button>
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={!canSubmit}>
+                {pending
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Add to library"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  navigate(isEdit && id ? `/books/${id}` : "/library")
+                }
+              >
+                Cancel
+              </Button>
+            </div>
+            {/* A disabled control with no stated reason reads as broken. */}
+            {!canSubmit && !pending && (
+              <p className="text-[0.7rem] text-muted-foreground">
+                Needs at least a title and an author — everything else is
+                optional.
+              </p>
+            )}
           </div>
         </div>
       </form>
