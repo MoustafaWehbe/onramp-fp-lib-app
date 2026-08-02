@@ -12,7 +12,6 @@ export function createError(message: string, statusCode = 500): AppError {
   return error;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorHandler(
   err: AppError,
   _req: Request,

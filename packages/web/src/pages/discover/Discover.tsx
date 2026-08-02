@@ -4,7 +4,6 @@ import { useBooks, useCreateBook } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { BookCover } from "../../components/folio/BookCover";
-import { EmptyState } from "../../components/folio/EmptyState";
 import { Link } from "react-router-dom";
 import { buttonVariants } from "../../components/ui/button";
 import type { DiscoveryItem } from "../../lib/types";

@@ -4,7 +4,9 @@ import type { EmailJobData, EmailJobResult } from "@starter-kit/shared";
 export async function processEmailJob(
   job: Job<EmailJobData, EmailJobResult>,
 ): Promise<EmailJobResult> {
-  const { to, subject, template, variables } = job.data;
+  // `variables` is unused until a provider is wired up (see the TODO below);
+  // the underscore marks that as deliberate rather than an oversight.
+  const { to, subject, template, variables: _variables } = job.data;
 
   console.info(`[email] Sending "${subject}" to ${to} (template: ${template})`);
 
