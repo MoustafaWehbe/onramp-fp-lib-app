@@ -10,6 +10,12 @@ export const READING_STATUSES = [
 
 const statusEnum = z.enum(READING_STATUSES);
 
+// Mirrors the Prisma BookFormat enum. Design B6a: "Just a label, for your own
+// filtering. Folio doesn't store or open book files."
+export const BOOK_FORMATS = ["PHYSICAL", "EBOOK", "AUDIOBOOK"] as const;
+
+const formatEnum = z.enum(BOOK_FORMATS);
+
 // A cover is either an external URL (Open Library) or a site-relative path
 // from the B6a upload endpoint — nothing else.
 const coverImage = z
@@ -27,6 +33,7 @@ export const createBookSchema = z.object({
   coverImage: coverImage.optional(),
   year: z.number().int().min(0).max(2100).optional(),
   pageCount: z.number().int().min(1).max(50_000).optional(),
+  format: formatEnum.optional(),
   status: statusEnum.optional(),
   openLibraryId: z.string().trim().max(120).optional(),
 });
@@ -38,6 +45,7 @@ export const updateBookSchema = z.object({
   coverImage: coverImage.optional(),
   year: z.number().int().min(0).max(2100).optional(),
   pageCount: z.number().int().min(1).max(50_000).optional(),
+  format: formatEnum.optional(),
   status: statusEnum.optional(),
 });
 

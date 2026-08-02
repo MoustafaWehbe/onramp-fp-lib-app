@@ -45,6 +45,14 @@ enum ReadingStatus {
   ABANDONED
 }
 
+/// Design B6a: "Just a label, for your own filtering. Folio doesn't store or
+/// open book files." — a field, never a reader or file manager.
+enum BookFormat {
+  PHYSICAL
+  EBOOK
+  AUDIOBOOK
+}
+
 enum ShareAccessLevel {
   VIEW
   WRITE
@@ -127,6 +135,7 @@ model Book {
   coverImage    String?       @map("cover_image") // book cover URL
   year          Int? // publication year
   pageCount     Int?          @map("page_count")
+  format        BookFormat    @default(PHYSICAL)
   status        ReadingStatus @default(WANT_TO_READ)
   openLibraryId String?       @map("open_library_id") // if added from Open Library
   createdAt     DateTime      @default(now()) @map("created_at")

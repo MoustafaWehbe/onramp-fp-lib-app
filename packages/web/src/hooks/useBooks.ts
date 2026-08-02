@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
-import type { Book, JournalEntry, ReadingStatus } from "../lib/types";
+import type {
+  Book,
+  BookFormat,
+  JournalEntry,
+  ReadingStatus,
+} from "../lib/types";
 
 export interface BookFilters {
   status?: ReadingStatus;
@@ -17,6 +22,7 @@ export interface BookInput {
   coverImage?: string;
   year?: number;
   pageCount?: number;
+  format?: BookFormat;
   status?: ReadingStatus;
   /** Set when the book came from the B6a catalog search — powers dedup. */
   openLibraryId?: string;

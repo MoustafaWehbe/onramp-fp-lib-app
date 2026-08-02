@@ -7,7 +7,12 @@ import { ShareBookDialog } from "../../components/folio/ShareBookDialog";
 import { SimilarBooks } from "../../components/folio/SimilarBooks";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
-import { READING_STATUSES, STATUS_LABEL, type ReadingStatus } from "../../lib/types";
+import {
+  READING_STATUSES,
+  STATUS_LABEL,
+  FORMAT_LABEL,
+  type ReadingStatus,
+} from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /** Design B7 — lifecycle control + the journal entry point. */
@@ -45,6 +50,7 @@ export function BookDetail() {
   ]
     .filter(Boolean)
     .join(" · ");
+  const formatLabel = FORMAT_LABEL[book.format] ?? FORMAT_LABEL.PHYSICAL;
 
   return (
     <div className="space-y-8">
@@ -86,7 +92,14 @@ export function BookDetail() {
             <h1 className="font-display text-[2rem] leading-tight text-foreground">
               {book.title}
             </h1>
-            <p className="text-sm text-muted-foreground">{meta}</p>
+            {/* Design B7a — the format label rides the metadata line. */}
+            <p className="text-sm text-muted-foreground">
+              {meta}
+              {meta && " · "}
+              <span className="rounded-full border border-border px-2.5 py-0.5 text-xs">
+                {formatLabel}
+              </span>
+            </p>
           </div>
 
           <section className="space-y-3">

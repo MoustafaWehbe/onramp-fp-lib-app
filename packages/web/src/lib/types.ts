@@ -28,6 +28,17 @@ export const STATUS_DOT: Record<ReadingStatus, string> = {
   ABANDONED: "bg-lifecycle-abandoned",
 };
 
+/** Design B6a: a label for the reader's own filtering — never a file. */
+export type BookFormat = "PHYSICAL" | "EBOOK" | "AUDIOBOOK";
+
+export const BOOK_FORMATS: BookFormat[] = ["PHYSICAL", "EBOOK", "AUDIOBOOK"];
+
+export const FORMAT_LABEL: Record<BookFormat, string> = {
+  PHYSICAL: "Physical",
+  EBOOK: "Ebook",
+  AUDIOBOOK: "Audiobook",
+};
+
 export interface Book {
   id: string;
   title: string;
@@ -36,6 +47,7 @@ export interface Book {
   coverImage: string | null;
   year: number | null;
   pageCount: number | null;
+  format: BookFormat;
   status: ReadingStatus;
   openLibraryId: string | null;
   createdAt: string;

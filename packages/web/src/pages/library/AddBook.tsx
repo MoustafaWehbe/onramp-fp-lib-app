@@ -9,7 +9,15 @@ import {
   type CatalogResult,
 } from "../../components/folio/CatalogSearch";
 import { CoverDropzone } from "../../components/folio/CoverDropzone";
-import { READING_STATUSES, STATUS_LABEL, STATUS_DOT, type ReadingStatus } from "../../lib/types";
+import {
+  READING_STATUSES,
+  STATUS_LABEL,
+  STATUS_DOT,
+  BOOK_FORMATS,
+  FORMAT_LABEL,
+  type BookFormat,
+  type ReadingStatus,
+} from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /**
@@ -33,6 +41,7 @@ export function AddBook() {
   const [year, setYear] = useState("");
   const [pageCount, setPageCount] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [format, setFormat] = useState<BookFormat>("PHYSICAL");
   const [status, setStatus] = useState<ReadingStatus>("WANT_TO_READ");
   const [openLibraryId, setOpenLibraryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +69,7 @@ export function AddBook() {
       setYear(existing.year ? String(existing.year) : "");
       setPageCount(existing.pageCount ? String(existing.pageCount) : "");
       setCoverImage(existing.coverImage ?? "");
+      setFormat(existing.format);
       setStatus(existing.status);
     }
   }, [existing]);
@@ -82,6 +92,7 @@ export function AddBook() {
       coverImage: coverImage.trim() || undefined,
       year: year ? Number(year) : undefined,
       pageCount: pageCount ? Number(pageCount) : undefined,
+      format,
       status,
       ...(isEdit ? {} : { openLibraryId: openLibraryId ?? undefined }),
     };
@@ -197,6 +208,34 @@ export function AddBook() {
                 className="bg-card"
               />
             </div>
+          </div>
+
+          {/* Design B6a — format is a label, chosen by the reader. The
+              catalog pick never sets it: Open Library doesn't carry format
+              reliably, and guessing would present a fact never entered. */}
+          <div className="space-y-2">
+            <Label>Format</Label>
+            <div className="flex flex-wrap gap-2">
+              {BOOK_FORMATS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFormat(f)}
+                  className={cn(
+                    "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
+                    format === f
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  {FORMAT_LABEL[f]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[0.7rem] text-muted-foreground">
+              Just a label, for your own filtering. Folio doesn&rsquo;t store
+              or open book files.
+            </p>
           </div>
 
           <div className="space-y-2">
