@@ -64,6 +64,8 @@ export function AppRoutes() {
           />
           <Route path="/library" element={<Library />} />
           <Route path="/books/new" element={<AddBook />} />
+          {/* Same form, edit mode — BookDetail has linked here all along. */}
+          <Route path="/books/:id/edit" element={<AddBook />} />
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/books/:id/journal" element={<Journal />} />
           <Route path="/shelves" element={<Shelves />} />
