@@ -239,6 +239,24 @@ export class AuthService {
     // Best-effort, like every enqueue here: the request must not 500 because
     // Redis blinked. The reader can simply ask again.
     const appOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
+    const resetUrl = `${appOrigin}/reset-password?token=${rawToken}`;
+
+    // The email worker is a mock and isn't part of `npm run dev`, so in dev
+    // the link would otherwise vanish into a queued job. Surface it in the
+    // API console — never in production, never in the HTTP response.
+    if (process.env.NODE_ENV !== "production") {
+      console.info(
+        [
+          "",
+          "┌─ PASSWORD RESET (dev only — the email worker is a mock) ─┐",
+          `│  for: ${user.email}`,
+          `│  ${resetUrl}`,
+          "└──────────────────────────────────────────────────────────┘",
+          "",
+        ].join("\n"),
+      );
+    }
+
     try {
       await emailQueue.add("password-reset", {
         to: user.email,
@@ -246,7 +264,7 @@ export class AuthService {
         template: "password-reset",
         variables: {
           name: user.name,
-          resetUrl: `${appOrigin}/reset-password?token=${rawToken}`,
+          resetUrl,
         },
       });
     } catch (err) {
