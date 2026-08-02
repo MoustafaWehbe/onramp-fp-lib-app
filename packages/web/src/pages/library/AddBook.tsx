@@ -130,12 +130,15 @@ export function AddBook() {
       )}
 
       <form onSubmit={onSubmit} className="grid gap-8 sm:grid-cols-[180px_1fr]">
-        <CoverDropzone
-          title={title || "Untitled"}
-          author={author || "Unknown"}
-          coverImage={coverImage || null}
-          onChange={(url) => setCoverImage(url ?? "")}
-        />
+        {/* B6a mobile: search first, fields next, cover last. */}
+        <div className="order-last sm:order-none">
+          <CoverDropzone
+            title={title || "Untitled"}
+            author={author || "Unknown"}
+            coverImage={coverImage || null}
+            onChange={(url) => setCoverImage(url ?? "")}
+          />
+        </div>
 
         <div className="space-y-5">
           <div className="space-y-2">

@@ -239,14 +239,15 @@ export function YearInReading() {
     narrative?.headline ?? `${stats.finishedCount} books in ${stats.year}`;
 
   return (
-    <div className="-mx-4 space-y-0 sm:-mx-6">
+    // Bleeds the dark hero to the layout edge at every gutter width.
+    <div className="-mx-4 space-y-0 sm:-mx-8 lg:-mx-12">
       {/* ── Dark hero ─────────────────────────────────────────────────── */}
-      <div className="rounded-[var(--radius)] bg-[#221D16] px-8 py-12 text-[#F5EFE3] sm:px-12">
+      <div className="rounded-[var(--radius)] bg-[#221D16] px-5 py-10 text-[#F5EFE3] sm:px-8 sm:py-12 lg:px-12">
         <div className="space-y-4">
           <p className="text-[0.7rem] uppercase tracking-[0.2em] text-[#B0A695]">
             {user?.name ?? "You"} · a private retrospective
           </p>
-          <h1 className="font-display text-[3rem] leading-none sm:text-[4rem]">
+          <h1 className="font-display text-[2.6rem] leading-none sm:text-[4rem]">
             {stats.year}, in reading
           </h1>
           <p className="max-w-xl text-sm leading-relaxed text-[#C9C1B2]">
@@ -270,7 +271,7 @@ export function YearInReading() {
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────── */}
-      <div className="grid gap-12 px-2 py-12 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-10 px-4 py-10 sm:gap-12 sm:px-8 sm:py-12 lg:grid-cols-[1fr_360px] lg:px-12">
         <div className="space-y-9">
           {narrative ? (
             <section className="space-y-4">
@@ -435,7 +436,7 @@ export function YearInReading() {
       </div>
 
       {/* ── Keep a card ───────────────────────────────────────────────── */}
-      <div className="space-y-4 px-2 pb-12">
+      <div className="space-y-4 px-4 pb-12 sm:px-8 lg:px-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
             <h2 className="font-display text-xl text-foreground">Keep a card</h2>
@@ -449,14 +450,14 @@ export function YearInReading() {
           </Button>
         </div>
         <div className="flex justify-center rounded-[var(--radius)] border border-border bg-secondary/60 p-8">
-          <div className="w-full max-w-[520px] space-y-6 rounded-[10px] bg-[#221D16] p-10 text-[#F5EFE3] shadow-xl">
+          <div className="w-full max-w-[520px] space-y-5 rounded-[10px] bg-[#221D16] p-6 text-[#F5EFE3] shadow-xl sm:space-y-6 sm:p-10">
             <div className="flex items-baseline justify-between">
               <span className="font-display text-xl italic">Folio</span>
               <span className="text-[0.65rem] uppercase tracking-[0.2em] text-[#A79E8F]">
                 {stats.year}
               </span>
             </div>
-            <p className="font-display text-[2.2rem] leading-tight">
+            <p className="font-display text-3xl leading-tight sm:text-[2.2rem]">
               {headline}
             </p>
             <div className="flex gap-1.5" aria-hidden>
@@ -468,7 +469,7 @@ export function YearInReading() {
                 />
               ))}
             </div>
-            <div className="flex gap-8 border-t border-[#3A342B] pt-5">
+            <div className="flex flex-wrap gap-x-8 gap-y-4 border-t border-[#3A342B] pt-5">
               <div>
                 <p className="font-display text-2xl">
                   {stats.pages.toLocaleString()}

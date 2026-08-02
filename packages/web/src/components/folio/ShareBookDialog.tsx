@@ -69,18 +69,24 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
     .join(" · ");
 
   return (
+    // Mobile is a bottom sheet (design E18 mobile); `sm:` restores the
+    // centered dialog. Same content either way.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/45 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/45 sm:items-center sm:overflow-y-auto sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`Share ${book.title}`}
     >
       <div
-        className="my-8 w-full max-w-2xl rounded-xl bg-background shadow-2xl"
+        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[22px] bg-background shadow-2xl sm:my-8 sm:max-h-none sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-start justify-between border-b border-border px-7 py-5">
+        <div
+          className="mx-auto mt-3 h-1 w-10 rounded-full bg-border sm:hidden"
+          aria-hidden
+        />
+        <header className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-7 sm:py-5">
           <div className="space-y-0.5">
             <h2 className="font-display text-xl text-foreground">
               Share one book
@@ -98,7 +104,7 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
           </button>
         </header>
 
-        <div className="space-y-5 px-7 py-5">
+        <div className="space-y-5 px-5 py-5 sm:px-7">
           {/* ── Send row ─────────────────────────────────────────────── */}
           <div className="space-y-2.5">
             <label
@@ -108,7 +114,7 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
               Share with
             </label>
             <form
-              className="flex gap-2.5"
+              className="flex flex-col gap-2.5 sm:flex-row"
               onSubmit={(e) => {
                 e.preventDefault();
                 void send();
@@ -123,7 +129,11 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
                 autoFocus
                 disabled={share.isPending}
               />
-              <Button type="submit" disabled={!email.trim() || share.isPending}>
+              <Button
+                type="submit"
+                disabled={!email.trim() || share.isPending}
+                className="min-h-[3rem] sm:min-h-0"
+              >
                 Share
               </Button>
             </form>

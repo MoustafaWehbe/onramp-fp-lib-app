@@ -247,7 +247,7 @@ export function MoodShelf() {
             <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
               Mood shelf · built just now
             </p>
-            <h1 className="font-display text-[2rem] leading-tight text-foreground">
+            <h1 className="font-display text-2xl leading-tight text-foreground sm:text-[2rem]">
               {result.title}
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -257,8 +257,8 @@ export function MoodShelf() {
               it&rsquo;s a suggestion, not a reading list.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex gap-2.5">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -273,28 +273,29 @@ export function MoodShelf() {
               </Button>
             </div>
             {keepError && (
-              <p className="max-w-xs text-right text-xs text-destructive">
+              <p className="max-w-xs text-xs text-destructive sm:text-right">
                 {keepError}
               </p>
             )}
           </div>
         </header>
 
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {/* D16 mobile: horizontal rows; the five-column grid is a desktop shape. */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5">
           {result.items.map((m) => (
             <Link
               key={m.id}
               to={`/books/${m.id}`}
-              className="group space-y-3"
+              className="group flex items-start gap-4 sm:block sm:space-y-3"
             >
-              <div className="transition-transform duration-200 group-hover:-translate-y-1">
+              <div className="w-[74px] shrink-0 transition-transform duration-200 group-hover:-translate-y-1 sm:w-full">
                 <BookCover
                   title={m.title}
                   author={m.author}
                   coverImage={m.coverImage}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <p className="text-sm font-semibold leading-snug text-foreground">
                   {m.title}
                 </p>
@@ -322,7 +323,7 @@ export function MoodShelf() {
         <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
           Mood shelf
         </p>
-        <h1 className="font-display text-[2.5rem] leading-tight text-foreground">
+        <h1 className="font-display text-3xl leading-tight text-foreground sm:text-[2.5rem]">
           What are you in the mood for?
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -331,8 +332,9 @@ export function MoodShelf() {
         </p>
       </div>
 
+      {/* D16 mobile: the box stands alone and the button goes full width. */}
       <form
-        className="flex w-full max-w-2xl items-center gap-3 rounded-[var(--radius)] border-[1.5px] border-primary bg-card px-4 py-2.5"
+        className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:items-center sm:rounded-[var(--radius)] sm:border-[1.5px] sm:border-primary sm:bg-card sm:px-4 sm:py-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           void run(mood);
@@ -344,9 +346,13 @@ export function MoodShelf() {
           autoFocus
           maxLength={200}
           placeholder="something for a rainy weekend"
-          className="flex-1 bg-transparent font-display text-lg text-foreground outline-none placeholder:text-muted-foreground/50"
+          className="min-h-[3.5rem] flex-1 rounded-[var(--radius)] border-[1.5px] border-primary bg-card px-4 font-display text-base text-foreground outline-none placeholder:text-muted-foreground/50 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:text-lg"
         />
-        <Button type="submit" disabled={!mood.trim()}>
+        <Button
+          type="submit"
+          disabled={!mood.trim()}
+          className="min-h-[3rem] w-full sm:min-h-0 sm:w-auto"
+        >
           Build the shelf
         </Button>
       </form>

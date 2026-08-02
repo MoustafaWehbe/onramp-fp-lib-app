@@ -102,7 +102,7 @@ export function Memory() {
           <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
             Reading memory
           </p>
-          <h1 className="font-display text-[2.5rem] leading-tight text-foreground">
+          <h1 className="font-display text-3xl leading-tight text-foreground sm:text-[2.5rem]">
             What did you write about?
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -164,12 +164,13 @@ export function Memory() {
       {!hasResult && !searching && (
         <div className="flex flex-col items-center gap-4">
           <p className="text-xs text-muted-foreground">Or start with one of these</p>
-          <div className="flex max-w-2xl flex-wrap justify-center gap-2">
+          {/* G19 mobile stacks the example chips full-width for the thumb. */}
+          <div className="flex w-full max-w-2xl flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
             {EXAMPLES.map((ex) => (
               <button
                 key={ex}
                 onClick={() => void run(ex)}
-                className="rounded-full border border-border px-4 py-1.5 font-display text-[0.85rem] italic text-muted-foreground transition-colors hover:border-primary hover:text-accent-foreground"
+                className="rounded-full border border-border px-4 py-2.5 text-left font-display text-[0.85rem] italic text-muted-foreground transition-colors hover:border-primary hover:text-accent-foreground sm:py-1.5 sm:text-center"
               >
                 {ex}
               </button>
@@ -231,9 +232,9 @@ export function Memory() {
               {result.hits.map((h) => (
                 <div
                   key={h.bookId}
-                  className="flex gap-5 rounded-[var(--radius)] border border-border bg-card p-6 transition-colors hover:border-primary/40"
+                  className="flex gap-4 rounded-[var(--radius)] border border-border bg-card p-4 transition-colors hover:border-primary/40 sm:gap-5 sm:p-6"
                 >
-                  <div className="w-14 shrink-0">
+                  <div className="w-10 shrink-0 sm:w-14">
                     <BookCover
                       title={h.bookTitle}
                       author={h.bookAuthor}
@@ -252,7 +253,7 @@ export function Memory() {
                     </p>
                     {/* The service already adds truncation ellipses where the
                         text was actually cut — none are added here. */}
-                    <p className="font-display text-[1.05rem] leading-relaxed text-foreground/90">
+                    <p className="font-display text-[0.95rem] leading-relaxed text-foreground/90 sm:text-[1.05rem]">
                       {h.pre}
                       {h.hit && (
                         <mark className="rounded-sm bg-accent px-0.5 text-accent-foreground">

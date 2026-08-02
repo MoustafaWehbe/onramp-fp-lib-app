@@ -90,7 +90,7 @@ export function CoverDropzone({
   // ── Attached ──────────────────────────────────────────────────────────
   if (coverImage && state.kind !== "uploading") {
     return (
-      <div className="space-y-2.5">
+      <div className="max-w-[11rem] space-y-2.5 sm:max-w-none">
         <BookCover title={title} author={author} coverImage={coverImage} />
         <div className="flex gap-3.5 text-xs font-medium">
           <button
@@ -126,7 +126,7 @@ export function CoverDropzone({
   // ── Uploading ─────────────────────────────────────────────────────────
   if (state.kind === "uploading") {
     return (
-      <div className="space-y-2.5">
+      <div className="max-w-[11rem] space-y-2.5 sm:max-w-none">
         <div className="flex aspect-[2/3] w-full flex-col items-center justify-center gap-3.5 rounded-sm border border-border bg-secondary/70">
           <div className="h-[3px] w-2/3 overflow-hidden rounded-full bg-border">
             <div
@@ -146,7 +146,7 @@ export function CoverDropzone({
   // ── Error ─────────────────────────────────────────────────────────────
   if (state.kind === "error") {
     return (
-      <div className="space-y-2.5">
+      <div className="space-y-2.5 sm:max-w-none">
         <div className="flex aspect-[2/3] w-full flex-col items-center justify-center gap-2.5 rounded-sm border-[1.5px] border-destructive/50 bg-destructive/5 px-4 text-center">
           <span className="font-display text-xl text-destructive">!</span>
           <p className="text-xs leading-relaxed text-destructive">
@@ -179,9 +179,31 @@ export function CoverDropzone({
   }
 
   // ── Idle / dragging ───────────────────────────────────────────────────
+  // Below `sm` there is no drag: the file picker is the whole affordance,
+  // as a compact row (design B6a mobile — "search first, cover last").
   const dragging = state.kind === "dragging";
   return (
     <div className="space-y-2.5">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="flex w-full items-center gap-3.5 rounded-[var(--radius)] border-[1.5px] border-dashed border-border bg-card p-4 text-left sm:hidden"
+      >
+        <span
+          className="flex h-16 w-11 shrink-0 items-center justify-center rounded-sm border border-dashed border-border font-display text-xl font-light text-muted-foreground/60"
+          aria-hidden
+        >
+          +
+        </span>
+        <span className="min-w-0 flex-1 space-y-0.5">
+          <span className="block text-[0.8rem] font-semibold text-foreground/80">
+            Add a cover photo
+          </span>
+          <span className="block text-[0.7rem] leading-relaxed text-muted-foreground">
+            Take a photo of the spine, or pick from your library. Optional.
+          </span>
+        </span>
+      </button>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -192,7 +214,7 @@ export function CoverDropzone({
         onDragLeave={() => setState({ kind: "idle" })}
         onDrop={onDrop}
         className={cn(
-          "flex aspect-[2/3] w-full flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed transition-colors",
+          "hidden aspect-[2/3] w-full flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed transition-colors sm:flex",
           dragging
             ? "border-primary bg-accent"
             : "border-border bg-card hover:border-primary/60",
@@ -226,7 +248,7 @@ export function CoverDropzone({
           )}
         </span>
       </button>
-      <p className="text-[0.7rem] leading-snug text-muted-foreground">
+      <p className="hidden text-[0.7rem] leading-snug text-muted-foreground sm:block">
         JPG, PNG or WEBP · up to 5 MB. Optional — a typographic cover is
         generated otherwise.
       </p>
