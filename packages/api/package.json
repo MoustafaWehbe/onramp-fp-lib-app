@@ -8,7 +8,7 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
     "test": "jest --config jest.config.js --coverage --passWithNoTests",
-    "lint": "eslint 'src/**/*.ts' 'app.ts' 'server.ts'",
+    "lint": "eslint .",
     "clean": "rm -rf dist",
     "db:generate": "npm run db:generate --workspace @starter-kit/shared",
     "db:migrate": "npm run db:migrate --workspace @starter-kit/shared",
