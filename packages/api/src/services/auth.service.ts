@@ -8,6 +8,7 @@ import {
   Prisma,
   type UserRole,
 } from "@starter-kit/shared";
+import { emailQueue } from "../lib/queue";
 import { createError } from "../middleware/error-handler";
 
 interface RegisterInput {
@@ -24,6 +25,8 @@ interface LoginInput {
 }
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1_000;
+/** A reset link is good for an hour — long enough for email, short enough to leak safely. */
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1_000;
 
 const prisma = getPrisma();
 
@@ -195,6 +198,103 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
     await prisma.session.deleteMany({ where: { id: sessionId } });
+  }
+
+  /**
+   * Start a password reset. Deliberately quiet about whether the email has an
+   * account — the endpoint answers the same either way, so it can't be used to
+   * enumerate readers. When the user exists: any outstanding tokens are
+   * retired, a fresh single-use token is stored as a sha256 hash (mirroring
+   * refresh tokens), and the raw token goes out once, in the emailed link.
+   *
+   * Returns the raw token so tests (and a worker-less dev setup, where the
+   * email job just sits in Redis) can complete the flow; the controller never
+   * puts it in a response.
+   */
+  async requestPasswordReset(email: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return null;
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    await prisma.$transaction([
+      // One live link at a time: a new request retires older, unused ones.
+      prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+      prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      }),
+    ]);
+
+    // Best-effort, like every enqueue here: the request must not 500 because
+    // Redis blinked. The reader can simply ask again.
+    const appOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
+    try {
+      await emailQueue.add("password-reset", {
+        to: user.email,
+        subject: "Reset your Folio password",
+        template: "password-reset",
+        variables: {
+          name: user.name,
+          resetUrl: `${appOrigin}/reset-password?token=${rawToken}`,
+        },
+      });
+    } catch (err) {
+      console.error(
+        "[auth] failed to enqueue password-reset email",
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    return rawToken;
+  }
+
+  /**
+   * Finish a password reset. The token must exist, be unused, and be inside
+   * its hour — anything else is one flat 400, with no hint of which check
+   * failed. Success consumes the token, sets the new password, and signs the
+   * account out everywhere (all sessions dropped, all refresh tokens revoked):
+   * whoever holds the new password is the only one still in.
+   */
+  async resetPassword(rawToken: string, password: string) {
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    const stored = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+    if (!stored || stored.usedAt !== null || new Date() > stored.expiresAt) {
+      throw createError("That reset link is invalid or has expired.", 400);
+    }
+
+    const passwordHash = await hashPassword(password);
+    await prisma.$transaction([
+      prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash },
+      }),
+      prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      prisma.session.deleteMany({ where: { userId: stored.userId } }),
+    ]);
   }
 
   async getProfile(userId: string) {

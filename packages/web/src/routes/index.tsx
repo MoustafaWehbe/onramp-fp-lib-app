@@ -7,6 +7,8 @@ import { useAuth } from "../hooks/useAuth";
 import { Welcome } from "../pages/Welcome";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
+import { ForgotPassword } from "../pages/auth/ForgotPassword";
+import { ResetPassword } from "../pages/auth/ResetPassword";
 import { Settings } from "../pages/dashboard/Settings";
 import { Library } from "../pages/library/Library";
 import { AddBook } from "../pages/library/AddBook";
@@ -51,6 +53,9 @@ export function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* The landing page for the emailed link (?token=…). */}
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* Protected app routes */}
