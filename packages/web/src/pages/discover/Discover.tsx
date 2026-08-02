@@ -20,8 +20,16 @@ const MOOD_EXAMPLES = [
 /** Design D13–D15 — discovery entry, the mood modifier, and the report. */
 export function Discover() {
   const generate = useGenerateReport();
-  const { data: history } = useDiscoveryReports();
-  const { data: finished } = useBooks({ status: "FINISHED" });
+  const {
+    data: history,
+    isError: historyError,
+    refetch: refetchHistory,
+  } = useDiscoveryReports();
+  const {
+    data: finished,
+    isError: finishedError,
+    refetch: refetchFinished,
+  } = useBooks({ status: "FINISHED" });
 
   const [moodOpen, setMoodOpen] = useState(false);
   const [mood, setMood] = useState("");
@@ -70,6 +78,28 @@ export function Discover() {
         setError("Couldn't add that book to your library.");
       }
     }
+  }
+
+  // Failed queries must not fall through to "No report yet · 0 of 5" below —
+  // that would misreport a library and reports that exist.
+  if ((historyError || finishedError) && !report && !generate.isPending) {
+    return (
+      <EmptyState
+        title="Discovery wouldn’t load."
+        line="Your library and past reports are untouched — this page just couldn’t reach them. Try again in a moment."
+        action={
+          <Button
+            variant="outline"
+            onClick={() => {
+              void refetchHistory();
+              void refetchFinished();
+            }}
+          >
+            Try again
+          </Button>
+        }
+      />
+    );
   }
 
   // Design D13 empty — "five finished books is enough to start", with a real
