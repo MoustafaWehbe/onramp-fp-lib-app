@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   useAdminStats,
@@ -119,7 +119,24 @@ export function Admin() {
       <PrivacyStrip />
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-7 px-4 pb-12 pt-8 sm:px-6 lg:px-10">
-        {statsQ.isError && !stats ? (
+        {/* Accounts and the audit log ride their OWN queries — a stats outage
+            must not lock the operator out of the record they most need. */}
+        {tab === "Accounts" ? (
+          <Accounts
+            accounts={usersQ.data}
+            loading={usersQ.isLoading}
+            failed={usersQ.isError && !usersQ.data}
+            writesDisabled={offline}
+            onRetry={() => void usersQ.refetch()}
+          />
+        ) : tab === "Audit log" ? (
+          <AuditLog
+            entries={auditQ.data}
+            loading={auditQ.isLoading}
+            failed={auditQ.isError && !auditQ.data}
+            onRetry={() => void auditQ.refetch()}
+          />
+        ) : statsQ.isError && !stats ? (
           // No snapshot to show — the one state with nothing truthful to render.
           <div className="flex flex-col items-start gap-4 rounded-[6px] border border-[#3A241C] bg-admin-panel px-6 py-14">
             <p className="text-[13px] text-admin-body">
@@ -127,7 +144,8 @@ export function Admin() {
             </p>
             <p className="font-sans text-xs text-admin-dim">
               The console never pretends — nothing renders until a query
-              answers.
+              answers. The Accounts and Audit log tabs run on their own
+              queries and may still be live.
             </p>
             <RetryButton onClick={retryAll} />
           </div>
@@ -141,23 +159,8 @@ export function Admin() {
           <Overview stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
         ) : tab === "Usage" ? (
           <Usage stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
-        ) : tab === "Accounts" ? (
-          <Accounts
-            accounts={usersQ.data}
-            loading={usersQ.isLoading}
-            failed={usersQ.isError && !usersQ.data}
-            writesDisabled={offline}
-            onRetry={() => void usersQ.refetch()}
-          />
-        ) : tab === "AI spend" ? (
-          <AiSpend stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
         ) : (
-          <AuditLog
-            entries={auditQ.data}
-            loading={auditQ.isLoading}
-            failed={auditQ.isError && !auditQ.data}
-            onRetry={() => void auditQ.refetch()}
-          />
+          <AiSpend stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
         )}
       </main>
     </div>
@@ -222,8 +225,12 @@ function StatusStrip({
           All systems nominal
         </span>
         <span className="hidden text-[11px] text-admin-dim sm:inline">
-          api reachable · queue not measured here · checked{" "}
-          {agoLabel(status.checkedAt)}
+          {/* dataUpdatedAt is 0 until the first success — an age computed
+              from the epoch would read "489000h ago" beside "nominal". */}
+          api reachable · queue not measured here ·{" "}
+          {status.checkedAt > 0
+            ? `checked ${agoLabel(status.checkedAt)}`
+            : "first check in flight"}
         </span>
       </div>
     </div>
@@ -241,8 +248,8 @@ function PrivacyStrip() {
           PRIVACY MODE · HARD-LOCKED
         </span>
         <span className="font-display text-[15px] italic leading-snug text-admin-avatar-ink">
-          No titles, journals, or identifiable content are queryable from this
-          console.
+          No titles, journals, or reflections are queryable from this console —
+          accounts, never what they read.
         </span>
       </div>
     </div>
@@ -393,6 +400,20 @@ function Accounts({
         title="Accounts"
         note="Change a role, toggle verification, or remove an account. Every action lands in the audit log before it executes."
       />
+
+      {/* A role/verification change that fails re-renders from the unchanged
+          cache — without this line the operator would read that as success. */}
+      {updateAccount.isError && (
+        <div className="flex items-center gap-2.5 rounded-[6px] border border-[#3A241C] bg-[rgba(217,139,104,.05)] px-4 py-2.5">
+          <span className="rounded-[3px] bg-[#3A241C] px-[7px] py-[2px] text-[8.5px] font-semibold tracking-[0.12em] text-admin-red">
+            NOT SAVED
+          </span>
+          <span className="font-sans text-xs text-admin-note">
+            The last account change didn&rsquo;t save — the row shows the
+            stored state. Try it again.
+          </span>
+        </div>
+      )}
 
       <Panel>
         {/* ≥sm: the table. Numbers right, text left, nothing centred. */}
@@ -599,7 +620,33 @@ function ArmDeleteDialog({
   const deleteAccount = useDeleteAccount();
   const [typed, setTyped] = useState("");
   const [failed, setFailed] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const armed = typed.trim() === account.email;
+
+  // Escape dismisses (dismissal is safe; only typing arms destruction) and
+  // Tab stays inside the panel — the page behind is inert in every sense.
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key === "Tab" && panelRef.current) {
+      const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+        "input, button:not([disabled])",
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   async function execute() {
     if (!armed || deleteAccount.isPending) return;
@@ -616,11 +663,14 @@ function ArmDeleteDialog({
     <div
       className="animate-scrim fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Delete account ${account.email}`}
+      onKeyDown={onKeyDown}
     >
+      {/* The dialog boundary is the panel, not the click-to-close scrim. */}
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Delete account ${account.email}`}
         className="animate-arrive w-full max-w-[560px] overflow-hidden rounded-[8px] border border-[#3A2E22] bg-admin-panel font-mono shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
