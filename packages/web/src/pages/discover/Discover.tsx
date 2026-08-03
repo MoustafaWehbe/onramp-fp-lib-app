@@ -1,6 +1,11 @@
 import { useState } from "react";
-import { useDiscoveryReports, useGenerateReport } from "../../hooks/useDiscovery";
+import {
+  useDiscoveryReports,
+  useGenerateReport,
+  useRefreshTasteProfile,
+} from "../../hooks/useDiscovery";
 import { useBooks, useCreateBook } from "../../hooks/useBooks";
+import { apiErrorMessage } from "../../lib/api-client";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { BookCover } from "../../components/folio/BookCover";
@@ -31,9 +36,14 @@ export function Discover() {
     refetch: refetchFinished,
   } = useBooks({ status: "FINISHED" });
 
+  const refreshProfile = useRefreshTasteProfile();
   const [moodOpen, setMoodOpen] = useState(false);
   const [mood, setMood] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // True when the failure was specifically the missing taste profile — the
+  // one error with a remedy this page can offer directly.
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [lastMood, setLastMood] = useState<string | undefined>(undefined);
 
   const createBook = useCreateBook();
   // Per-recommendation UI state, keyed by rank within the visible report.
@@ -49,15 +59,48 @@ export function Discover() {
 
   async function run(withMood?: string) {
     setError(null);
+    setNeedsProfile(false);
     setMoodOpen(false);
+    setLastMood(withMood?.trim() || undefined);
     try {
       await generate.mutateAsync(withMood?.trim() || undefined);
       setItemState({});
-    } catch {
+    } catch (err) {
+      // The API's message is precise ("No taste profile yet — refresh…");
+      // never replace it with a vaguer guess. The generic line is only for
+      // failures that carried no message at all.
+      const message = apiErrorMessage(err);
+      const status = (err as { response?: { status?: number } }).response
+        ?.status;
+      setNeedsProfile(
+        status === 422 && /taste profile/i.test(message ?? ""),
+      );
       setError(
-        "Couldn't build a report. The model may be unreachable, or you may not have enough finished books yet.",
+        message ??
+          "Couldn't build a report — the request never reached the model. Try again in a moment.",
       );
     }
+  }
+
+  /**
+   * The explicit remedy for the missing-profile failure: build the profile
+   * (its own slow, labelled step), then retry the same report. Never run
+   * silently behind a button that claims to do something else.
+   */
+  async function buildProfileAndRetry() {
+    setError(null);
+    try {
+      await refreshProfile.mutateAsync();
+    } catch (err) {
+      setNeedsProfile(false);
+      setError(
+        apiErrorMessage(err) ??
+          "Couldn't build the taste profile — the model may be unreachable.",
+      );
+      return;
+    }
+    setNeedsProfile(false);
+    await run(lastMood);
   }
 
   async function wantToRead(item: DiscoveryItem) {
@@ -140,6 +183,17 @@ export function Discover() {
             <p className="text-sm leading-relaxed text-muted-foreground">
               {error}
             </p>
+            {needsProfile && (
+              <Button
+                size="sm"
+                onClick={() => void buildProfileAndRetry()}
+                disabled={refreshProfile.isPending || generate.isPending}
+              >
+                {refreshProfile.isPending
+                  ? "Building your taste profile…"
+                  : "Build the taste profile, then retry"}
+              </Button>
+            )}
           </div>
         )}
         <div className="flex items-center justify-center gap-3">
@@ -263,13 +317,24 @@ export function Discover() {
 
       {/* Same failure register as the empty state — the mood path lands here. */}
       {error && (
-        <div className="space-y-1.5 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4">
+        <div className="space-y-2 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4">
           <p className="text-sm font-semibold text-destructive">
             That didn&rsquo;t work.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {error}
           </p>
+          {needsProfile && (
+            <Button
+              size="sm"
+              onClick={() => void buildProfileAndRetry()}
+              disabled={refreshProfile.isPending || generate.isPending}
+            >
+              {refreshProfile.isPending
+                ? "Building your taste profile…"
+                : "Build the taste profile, then retry"}
+            </Button>
+          )}
         </div>
       )}
 
