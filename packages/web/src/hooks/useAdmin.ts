@@ -51,6 +51,12 @@ export function useAdminStats() {
       );
       return data.data;
     },
+    // The status line derives from this query, so it has to PROBE: without an
+    // interval, "All systems nominal" would outlive a dead API forever — the
+    // outage can only be noticed by a fetch that fails. Thirty seconds keeps
+    // "checked Ns ago" honest at the cost of two requests a minute.
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: true,
   });
 }
 
