@@ -12,9 +12,9 @@
     "db:generate": "node scripts/with-root-env.js prisma generate",
     "db:migrate": "node scripts/with-root-env.js prisma migrate dev",
     "db:deploy": "node scripts/with-root-env.js prisma migrate deploy",
-    "db:reset": "prisma migrate reset",
+    "db:reset": "node scripts/with-root-env.js prisma migrate reset",
     "db:seed": "node scripts/with-root-env.js prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "node scripts/with-root-env.js prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
