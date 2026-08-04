@@ -8,6 +8,9 @@ import type { OpenLibraryWork } from "../../src/lib/open-library";
 
 const store = new Map<string, string>();
 const redisMock = {
+  // ioredis exposes the socket state; the cache only issues commands when it
+  // reads "ready", so nothing lands in the offline queue during an outage.
+  status: "ready",
   get: jest.fn(async (key: string) => store.get(key) ?? null),
   set: jest.fn(async (key: string, value: string) => {
     store.set(key, value);
@@ -44,6 +47,7 @@ function seed(fetchedAt: number, value: OpenLibraryWork[] = works) {
 beforeEach(() => {
   store.clear();
   jest.clearAllMocks();
+  redisMock.status = "ready";
   redisMock.get.mockImplementation(async (key: string) => store.get(key) ?? null);
   redisMock.set.mockImplementation(async (key: string, value: string) => {
     store.set(key, value);
@@ -132,6 +136,18 @@ describe("withSubjectCache", () => {
     await expect(withSubjectCache(fetcher)("poetry")).resolves.toEqual(works);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
+  it("issues no commands at all while the connection is down", async () => {
+    // ioredis would hold them in its offline queue until reconnect, on the
+    // same connection BullMQ uses — a slow leak under a sustained outage.
+    redisMock.status = "reconnecting";
+    const fetcher = jest.fn(async () => works);
+
+    await expect(withSubjectCache(fetcher)("poetry")).resolves.toEqual(works);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(redisMock.get).not.toHaveBeenCalled();
+    expect(redisMock.set).not.toHaveBeenCalled();
   });
 
   it("treats a malformed cache entry as a miss", async () => {

@@ -30,6 +30,26 @@ interface CachedSubject {
 
 const keyFor = (subject: string) => `${KEY_PREFIX}${subject}`;
 
+/**
+ * Only talk to Redis when the socket is actually up.
+ *
+ * ioredis keeps an offline queue: a command issued while disconnected is held
+ * until reconnect rather than failing. Abandoning it on timeout doesn't remove
+ * it, so a sustained outage would let cache commands pile up on the connection
+ * BullMQ shares — the timeout alone stops the hang but not the accumulation.
+ * Checking status first means nothing is ever enqueued while offline, which
+ * keeps this a strict read-through cache on one connection (a second,
+ * cache-only client would also work, but the queue connection is deliberately
+ * the only one this package opens).
+ */
+function redisReady(): boolean {
+  try {
+    return getRedisConnection().status === "ready";
+  } catch {
+    return false;
+  }
+}
+
 function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
   let timer: NodeJS.Timeout;
   const ceiling = new Promise<never>((_, reject) => {
@@ -48,6 +68,7 @@ function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
  * existed.
  */
 async function read(subject: string): Promise<CachedSubject | null> {
+  if (!redisReady()) return null;
   try {
     const raw = await withTimeout(
       getRedisConnection().get(keyFor(subject)),
@@ -70,6 +91,7 @@ async function read(subject: string): Promise<CachedSubject | null> {
 
 /** Store a fresh response. Best-effort — a write failure never fails a report. */
 async function write(subject: string, works: OpenLibraryWork[]): Promise<void> {
+  if (!redisReady()) return;
   try {
     const payload: CachedSubject = { fetchedAt: Date.now(), works };
     await withTimeout(
