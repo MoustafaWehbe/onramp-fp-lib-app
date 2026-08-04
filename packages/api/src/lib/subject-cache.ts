@@ -1,4 +1,4 @@
-import { getRedisConnection } from "@starter-kit/shared";
+import IORedis from "ioredis";
 import type { OpenLibraryWork } from "./open-library";
 
 // Subject slugs come from deriveSubjects, which produces near-identical values
@@ -14,12 +14,9 @@ const TTL_SECONDS = 7 * 24 * 60 * 60;
 const STALE_AFTER_MS = 24 * 60 * 60 * 1_000;
 
 /**
- * Cache operations get a hard ceiling. The shared connection is configured
- * with `maxRetriesPerRequest: null` for BullMQ's benefit, which means that
- * while Redis is unreachable commands QUEUE INDEFINITELY rather than
- * rejecting — an awaited get would hang the request forever instead of
- * degrading. A try/catch cannot rescue a promise that never settles, so every
- * cache call races this timeout and a timeout reads as a miss.
+ * A ceiling on every cache call. Structurally nothing can queue (see the
+ * client below), but a command already in flight on a silently dead socket
+ * would still wait on TCP — a cache is never worth that, so it loses the race.
  */
 const CACHE_OP_TIMEOUT_MS = 250;
 
@@ -31,23 +28,68 @@ interface CachedSubject {
 const keyFor = (subject: string) => `${KEY_PREFIX}${subject}`;
 
 /**
- * Only talk to Redis when the socket is actually up.
+ * The cache gets its own connection, deliberately not the queue's.
  *
- * ioredis keeps an offline queue: a command issued while disconnected is held
- * until reconnect rather than failing. Abandoning it on timeout doesn't remove
- * it, so a sustained outage would let cache commands pile up on the connection
- * BullMQ shares — the timeout alone stops the hang but not the accumulation.
- * Checking status first means nothing is ever enqueued while offline, which
- * keeps this a strict read-through cache on one connection (a second,
- * cache-only client would also work, but the queue connection is deliberately
- * the only one this package opens).
+ * A job queue and a cache want opposite things from a connection. BullMQ needs
+ * commands to survive a blip, so the shared client sets
+ * `maxRetriesPerRequest: null` with the offline queue on — a command issued
+ * while Redis is down waits for reconnect instead of failing. For a cache that
+ * is exactly wrong: the read must fail immediately so the caller can go to the
+ * network.
+ *
+ * An earlier attempt kept the shared client and checked `status === "ready"`
+ * first. That races — the socket can drop between the check and the command,
+ * and the command then lands in the offline queue we were trying to avoid.
+ * These options make the property structural rather than timed:
+ *   · enableOfflineQueue: false — a command on a down connection rejects at
+ *     once, and nothing accumulates behind it;
+ *   · maxRetriesPerRequest: 1 — one retry during a reconnect, then fail;
+ *   · lazyConnect: true — no socket is opened until the cache is first used,
+ *     so importing this module costs nothing.
  */
-function redisReady(): boolean {
-  try {
-    return getRedisConnection().status === "ready";
-  } catch {
-    return false;
+let client: IORedis | null = null;
+
+function cacheClient(): IORedis {
+  if (!client) {
+    const created = new IORedis(
+      process.env.REDIS_URL ?? "redis://localhost:6379",
+      {
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+        connectTimeout: 1_000,
+      },
+    );
+    // ioredis is an EventEmitter, and an unheard "error" event is a thrown
+    // exception. Connection errors are expected here and already reported by
+    // the read/write handlers, so this listener exists to keep a cache outage
+    // from taking the process down.
+    created.on("error", () => {});
+    client = created;
   }
+  return client;
+}
+
+/**
+ * Hand back a connected client, or null to skip the cache this round. Nothing
+ * here is load-bearing for safety — the connection options are — it only
+ * decides whether it is worth issuing a command at all.
+ */
+async function connected(): Promise<IORedis | null> {
+  const c = cacheClient();
+  if (c.status === "ready") return c;
+  // "wait" is the lazyConnect idle state; "end" follows a failed attempt.
+  if (c.status === "wait" || c.status === "end") {
+    try {
+      await withTimeout(c.connect(), "connect");
+    } catch {
+      return null;
+    }
+    // connect() mutates status; the check above narrowed it, so re-read wide.
+    return (c.status as string) === "ready" ? c : null;
+  }
+  // Mid-handshake or reconnecting: don't wait on it, take the miss.
+  return null;
 }
 
 function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
@@ -68,12 +110,10 @@ function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
  * existed.
  */
 async function read(subject: string): Promise<CachedSubject | null> {
-  if (!redisReady()) return null;
+  const redis = await connected();
+  if (!redis) return null;
   try {
-    const raw = await withTimeout(
-      getRedisConnection().get(keyFor(subject)),
-      "get",
-    );
+    const raw = await withTimeout(redis.get(keyFor(subject)), "get");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedSubject;
     if (!Array.isArray(parsed?.works) || typeof parsed?.fetchedAt !== "number") {
@@ -91,16 +131,12 @@ async function read(subject: string): Promise<CachedSubject | null> {
 
 /** Store a fresh response. Best-effort — a write failure never fails a report. */
 async function write(subject: string, works: OpenLibraryWork[]): Promise<void> {
-  if (!redisReady()) return;
+  const redis = await connected();
+  if (!redis) return;
   try {
     const payload: CachedSubject = { fetchedAt: Date.now(), works };
     await withTimeout(
-      getRedisConnection().set(
-        keyFor(subject),
-        JSON.stringify(payload),
-        "EX",
-        TTL_SECONDS,
-      ),
+      redis.set(keyFor(subject), JSON.stringify(payload), "EX", TTL_SECONDS),
       "set",
     );
   } catch (err) {

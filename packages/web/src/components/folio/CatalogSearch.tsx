@@ -13,17 +13,27 @@ export interface CatalogResult {
   coverUrl: string | null;
 }
 
+/** Wait this long after the last keystroke before asking the catalog. */
+const DEBOUNCE_MS = 400;
+/** Below this, a query is too broad to be worth a request. */
+const MIN_QUERY_CHARS = 3;
+
 function useCatalogSearch(q: string) {
   return useQuery({
     queryKey: ["catalog-search", q],
-    queryFn: async () => {
+    // Consuming `signal` opts into React Query's cancellation: when the
+    // debounced query changes, this observer moves to the new key, the old
+    // query loses its last watcher, and its request is aborted. Without it a
+    // multi-word search leaves an earlier lookup in flight — and Open Library
+    // allows one request a second to callers it can't identify.
+    queryFn: async ({ signal }) => {
       const { data } = await apiClient.get<{ data: CatalogResult[] }>(
         "/books/catalog-search",
-        { params: { q } },
+        { params: { q }, signal },
       );
       return data.data;
     },
-    enabled: q.trim().length >= 3,
+    enabled: q.trim().length >= MIN_QUERY_CHARS,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -43,14 +53,16 @@ export function CatalogSearch({ onPick, onManual }: CatalogSearchProps) {
   const [text, setText] = useState("");
   const [q, setQ] = useState("");
 
-  // Debounce: search what the reader typed, half a beat after they stop.
+  // Debounce: search what the reader typed, half a beat after they stop. The
+  // cleanup cancels the pending timer on every keystroke, so a word typed
+  // without pausing costs one request rather than one per letter.
   useEffect(() => {
-    const t = setTimeout(() => setQ(text), 450);
+    const t = setTimeout(() => setQ(text), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [text]);
 
   const { data, isLoading, isError } = useCatalogSearch(q);
-  const active = q.trim().length >= 3;
+  const active = q.trim().length >= MIN_QUERY_CHARS;
 
   return (
     <div className="space-y-3">

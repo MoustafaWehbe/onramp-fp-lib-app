@@ -8,19 +8,29 @@ import type { OpenLibraryWork } from "../../src/lib/open-library";
 
 const store = new Map<string, string>();
 const redisMock = {
-  // ioredis exposes the socket state; the cache only issues commands when it
-  // reads "ready", so nothing lands in the offline queue during an outage.
-  status: "ready",
+  // ioredis' socket state. The cache opens lazily, so "wait" is the start.
+  status: "ready" as string,
+  connect: jest.fn(async () => {
+    redisMock.status = "ready";
+  }),
+  on: jest.fn(),
   get: jest.fn(async (key: string) => store.get(key) ?? null),
   set: jest.fn(async (key: string, value: string) => {
     store.set(key, value);
     return "OK";
   }),
-  // The shared teardown quits the connection and closes the queues; the mock
-  // supplies both so nothing real is opened (and so nothing real leaks).
   quit: jest.fn(async () => "OK"),
 };
 
+// The cache builds its own ioredis client (queue semantics are wrong for a
+// cache), so that constructor is what gets stubbed.
+jest.mock("ioredis", () => ({
+  __esModule: true,
+  default: jest.fn(() => redisMock),
+}));
+
+// The shared barrel is stubbed too: the suite teardown closes the queues and
+// quits the connection, and nothing real should be opened by a unit test.
 jest.mock("@starter-kit/shared", () => ({
   getRedisConnection: () => redisMock,
   emailQueue: { close: jest.fn(async () => undefined) },
@@ -48,6 +58,11 @@ beforeEach(() => {
   store.clear();
   jest.clearAllMocks();
   redisMock.status = "ready";
+  // clearAllMocks keeps implementations but not one-shot overrides; re-arm the
+  // happy-path connect so a persistent rejection can't leak between tests.
+  redisMock.connect.mockImplementation(async () => {
+    redisMock.status = "ready";
+  });
   redisMock.get.mockImplementation(async (key: string) => store.get(key) ?? null);
   redisMock.set.mockImplementation(async (key: string, value: string) => {
     store.set(key, value);
@@ -138,16 +153,31 @@ describe("withSubjectCache", () => {
     expect(Date.now() - started).toBeLessThan(2_000);
   });
 
-  it("issues no commands at all while the connection is down", async () => {
-    // ioredis would hold them in its offline queue until reconnect, on the
-    // same connection BullMQ uses — a slow leak under a sustained outage.
-    redisMock.status = "reconnecting";
+  it("issues no commands at all when the connection can't be made", async () => {
+    // enableOfflineQueue: false means a command would reject rather than
+    // queue, but there is no reason to issue one at all — and nothing may
+    // accumulate while Redis is down.
+    redisMock.status = "wait";
+    // Persistently down: the write path attempts its own connect, and that
+    // must fail too — a one-shot rejection would let the store slip through.
+    redisMock.connect.mockRejectedValue(new Error("ECONNREFUSED"));
     const fetcher = jest.fn(async () => works);
 
     await expect(withSubjectCache(fetcher)("poetry")).resolves.toEqual(works);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(redisMock.get).not.toHaveBeenCalled();
     expect(redisMock.set).not.toHaveBeenCalled();
+  });
+
+  it("connects on first use, then reuses the open client", async () => {
+    redisMock.status = "wait";
+    const fetcher = jest.fn(async () => works);
+    const cached = withSubjectCache(fetcher);
+
+    await cached("poetry"); // cold: connects, misses, fetches, stores
+    await cached("poetry"); // warm: same client, served from cache
+    expect(redisMock.connect).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("treats a malformed cache entry as a miss", async () => {
