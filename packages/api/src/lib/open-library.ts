@@ -1,10 +1,16 @@
 import { createError } from "../middleware/error-handler";
 
 const OPEN_LIBRARY_BASE = "https://openlibrary.org";
-// Open Library asks API clients for a descriptive User-Agent with a contact.
-const USER_AGENT =
-  "Folio/0.1 (personal reading journal; +https://github.com/MoustafaWehbe/onramp-fp-lib-app)";
+// Open Library's documented format for identified clients: app name plus a
+// contact email. Identified callers get 3 req/s (vs 1 for anonymous) — which
+// matters now that the subject fan-out runs its three requests in parallel.
+const CONTACT =
+  process.env.OPENLIBRARY_CONTACT ?? "folio-maintainers@example.com";
+const USER_AGENT = `Folio/1.0 (${CONTACT})`;
 const SUBJECT_FETCH_LIMIT = 30;
+// Eight seconds is generous for a metadata lookup; with the fan-out parallel
+// this is also the retrieval path's worst case, down from 3 × 15s sequential.
+const FETCH_TIMEOUT_MS = 8_000;
 
 /** A work from the Open Library Subjects API (only the fields we use). */
 export interface OpenLibraryWork {
@@ -51,7 +57,7 @@ export async function searchCatalog(
   try {
     res = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   } catch {
     throw createError("The catalog isn't answering right now.", 502);
@@ -117,7 +123,7 @@ export async function fetchSubjectWorks(
   try {
     res = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   } catch {
     throw createError(`Open Library request failed for "${subject}"`, 502);

@@ -140,6 +140,11 @@ See `.env.example` for all required variables. Three worth knowing about:
 - **`VITE_API_PROXY_TARGET` / `VITE_PORT`** (in `packages/web/.env.local`) —
   the dev proxy target and port, for running the web app against an API that
   isn't on `:3000`.
+- **`OPENLIBRARY_CONTACT`** — the contact address sent in the `User-Agent` on
+  Open Library calls (catalog search and discovery's subject lookups). Open
+  Library allows identified callers 3 requests/second against 1 for anonymous
+  ones, which discovery's parallel fan-out depends on. Set a real address in
+  any deployment.
 
 ## Good to know in development
 
