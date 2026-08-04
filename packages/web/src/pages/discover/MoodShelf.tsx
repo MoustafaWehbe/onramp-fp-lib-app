@@ -91,6 +91,7 @@ export function MoodShelf() {
     setFailed(false);
     setKeepError(null);
     setResult(null);
+    keptShelfId.current = null; // a new build keeps into a new shelf
     const seq = ++requestSeq.current;
     try {
       const data = await build.mutateAsync({ mood: trimmed, force });
@@ -105,27 +106,46 @@ export function MoodShelf() {
     build.reset();
   }
 
+  // If the create succeeded but an add failed, the shelf exists half-filled;
+  // a blind retry would 409 on the duplicate name and report the WRONG error.
+  // Remember the created shelf and resume into it instead.
+  const keptShelfId = useRef<string | null>(null);
+
   async function keepAsShelf() {
     if (result?.status !== "ok" || keeping) return;
     setKeeping(true);
     setKeepError(null);
     try {
-      const shelf = await createShelf.mutateAsync({
-        name: result.title.slice(0, 120),
-        description: "Kept from a mood shelf.",
-      });
-      for (const item of result.items) {
-        await apiClient.post(`/shelves/${shelf.id}/books`, { bookId: item.id });
+      if (!keptShelfId.current) {
+        const shelf = await createShelf.mutateAsync({
+          name: result.title.slice(0, 120),
+          description: "Kept from a mood shelf.",
+        });
+        keptShelfId.current = shelf.id;
       }
-      navigate(`/shelves/${shelf.id}`);
+      for (const item of result.items) {
+        try {
+          await apiClient.post(`/shelves/${keptShelfId.current}/books`, {
+            bookId: item.id,
+          });
+        } catch (err) {
+          const status = (err as { response?: { status?: number } }).response
+            ?.status;
+          // Already on the shelf from the previous attempt — that's success.
+          if (status !== 409) throw err;
+        }
+      }
+      navigate(`/shelves/${keptShelfId.current}`);
     } catch (err) {
       setKeeping(false);
       const status = (err as { response?: { status?: number } }).response
         ?.status;
       setKeepError(
-        status === 409
-          ? "You already have a shelf with this name — it may hold these books."
-          : "Couldn't save the shelf just now. The picks are still here — try again.",
+        keptShelfId.current
+          ? "The shelf was created but some picks didn't land on it — try again to finish."
+          : status === 409
+            ? "You already have a shelf with this name — it may hold these books."
+            : "Couldn't save the shelf just now. The picks are still here — try again.",
       );
     }
   }
@@ -266,6 +286,7 @@ export function MoodShelf() {
                 onClick={() => {
                   setKeepError(null);
                   setResult(null);
+                  keptShelfId.current = null;
                 }}
               >
                 Try another mood

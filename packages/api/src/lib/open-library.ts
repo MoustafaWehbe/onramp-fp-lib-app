@@ -59,19 +59,47 @@ export async function searchCatalog(
   if (!res.ok) {
     throw createError("The catalog isn't answering right now.", 502);
   }
-  const body = (await res.json()) as { docs?: SearchDoc[] };
-  return (body.docs ?? [])
-    .filter((d) => d.title)
+
+  // The response shape belongs to an external service — validate it before
+  // use. Anything unrecognised (non-JSON, docs missing, junk entries) becomes
+  // the same 502 the client already degrades on: manual entry keeps working,
+  // the form never crashes on someone else's payload.
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    throw createError("The catalog isn't answering right now.", 502);
+  }
+  const docs = (body as { docs?: unknown })?.docs;
+  if (!Array.isArray(docs)) {
+    throw createError("The catalog isn't answering right now.", 502);
+  }
+
+  return docs
+    .filter(
+      (d): d is SearchDoc =>
+        typeof d === "object" &&
+        d !== null &&
+        typeof (d as SearchDoc).title === "string" &&
+        (d as SearchDoc).title!.trim().length > 0,
+    )
     .map((d) => ({
-      openLibraryId: d.key?.match(/OL\w+/)?.[0] ?? null,
+      openLibraryId:
+        typeof d.key === "string" ? (d.key.match(/OL\w+/)?.[0] ?? null) : null,
       title: d.title!,
-      author: d.author_name?.[0] ?? "Unknown author",
-      year: d.first_publish_year ?? null,
-      pageCount: d.number_of_pages_median ?? null,
-      coverUrl:
-        d.cover_i != null
-          ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
-          : null,
+      author:
+        Array.isArray(d.author_name) && typeof d.author_name[0] === "string"
+          ? d.author_name[0]
+          : "Unknown author",
+      year: Number.isFinite(d.first_publish_year)
+        ? (d.first_publish_year as number)
+        : null,
+      pageCount: Number.isFinite(d.number_of_pages_median)
+        ? (d.number_of_pages_median as number)
+        : null,
+      coverUrl: Number.isFinite(d.cover_i)
+        ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+        : null,
     }));
 }
 

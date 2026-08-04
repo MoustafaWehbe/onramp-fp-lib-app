@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -36,11 +36,14 @@ function TallyNumber({ value }: { value: number }) {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const [shown, setShown] = useState(reduced ? value : 0);
-  const ran = useRef(false);
 
+  // Re-runs whenever `value` changes (e.g. "Try the narrative again" refetches
+  // different stats) — a run-once guard here left stale counts on screen.
   useEffect(() => {
-    if (ran.current || reduced) return;
-    ran.current = true;
+    if (reduced) {
+      setShown(value);
+      return;
+    }
     const start = performance.now();
     let raf = 0;
     const tick = (now: number) => {

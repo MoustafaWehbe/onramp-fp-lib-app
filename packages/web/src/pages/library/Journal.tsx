@@ -184,6 +184,10 @@ export function Journal() {
           written yet. They suggest; the cursor below stays live throughout. */}
       {!journal?.reflectionText && (
         <JournalPrompts
+          // Keyed: the route keeps this component mounted across books, and
+          // its dismissed/hidden state is lazily read from storage — without
+          // the key, one book's dismissal would leak onto the next.
+          key={book.id}
           bookId={book.id}
           onPick={(prompt) =>
             setReflectionText((text) =>

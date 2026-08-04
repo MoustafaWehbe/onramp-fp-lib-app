@@ -110,7 +110,11 @@ export function SharedShelves() {
   const { data: invites } = usePendingInvites();
   const { data: receivedBooks, isError: receivedError } =
     useReceivedBookShares();
-  const { data: sentBooks, isError: sentError } = useSentBookShares();
+  const {
+    data: sentBooks,
+    isError: sentError,
+    isLoading: sentLoading,
+  } = useSentBookShares();
   const revoke = useRevokeBookShare();
   const respond = useRespondToInvite();
   const [revokeError, setRevokeError] = useState<string | null>(null);
@@ -205,6 +209,10 @@ export function SharedShelves() {
             Your sent books wouldn&rsquo;t load just now — nothing has changed
             about them.
           </p>
+        ) : sentLoading ? (
+          // The empty state is a claim about the data — don't make it while
+          // the query is still on its way.
+          <Shimmer className="h-14 w-full" />
         ) : sentBooks && sentBooks.length > 0 ? (
           <div className="space-y-2">
             {sentBooks.map((s) => (

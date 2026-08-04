@@ -22,7 +22,7 @@ export function Library() {
 
   // The unfiltered count tells first-run ("no books at all") apart from
   // filtered-empty ("no books match") — they're different screens in the design.
-  const { data: allBooks } = useBooks({});
+  const { data: allBooks, isLoading: totalLoading } = useBooks({});
   const total = allBooks?.length ?? 0;
 
   const set = (patch: Partial<BookFilters>) =>
@@ -163,7 +163,10 @@ export function Library() {
             </Button>
           }
         />
-      ) : isLoading ? (
+      ) : isLoading || (books?.length === 0 && totalLoading) ? (
+        // An empty page can't pick between first-run and filtered-empty until
+        // the unfiltered count has answered — keep the skeleton, don't flash
+        // the wrong empty state.
         <BookGridShimmer />
       ) : books && books.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">

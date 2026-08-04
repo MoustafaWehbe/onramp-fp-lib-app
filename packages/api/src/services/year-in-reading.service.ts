@@ -157,9 +157,13 @@ async function buildStats(
       genreCounts(userId, year - 1),
     ]);
 
+  // Every date in this service is bucketed in UTC (getUTCMonth, Date.UTC
+  // boundaries) — so the labels must be formatted in UTC too, or a server
+  // west of Greenwich prints "Dec" over the January bucket.
   const velocity = Array.from({ length: 12 }, (_, m) => ({
     month: new Date(Date.UTC(year, m, 1)).toLocaleString("en", {
       month: "short",
+      timeZone: "UTC",
     }),
     finished: finished.filter((b) => b.updatedAt.getUTCMonth() === m).length,
   }));
@@ -251,7 +255,11 @@ async function buildNarrative(
 ): Promise<YearNarrative | null> {
   const bookLines = finished
     .map((b) => {
-      const month = b.updatedAt.toLocaleString("en", { month: "long" });
+      // Same clock as the stats buckets — UTC, never server-local.
+      const month = b.updatedAt.toLocaleString("en", {
+        month: "long",
+        timeZone: "UTC",
+      });
       const rating = b.journalEntry?.rating;
       return (
         `- ${b.title} — ${b.author}` +

@@ -70,23 +70,23 @@ export const bookSharesService = {
       throw createError("That's you — the book is already yours.", 400);
     }
 
-    const existing = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM book_shares
-      WHERE book_id = ${bookId}::uuid AND recipient_id = ${recipient.id}::uuid
-    `;
-    if (existing.length > 0) {
-      throw createError("You've already sent them this book.", 409);
-    }
-
+    // The insert itself arbitrates duplicates: a concurrent share of the same
+    // book to the same reader loses the (book_id, recipient_id) unique race
+    // and comes back as an empty result — the same 409 as the sequential
+    // case, never a constraint error surfacing as a 500.
     const [row] = await prisma.$queryRaw<{ id: string; created_at: Date }[]>`
       INSERT INTO book_shares (book_id, sender_id, recipient_id)
       VALUES (${bookId}::uuid, ${ownerId}::uuid, ${recipient.id}::uuid)
+      ON CONFLICT (book_id, recipient_id) DO NOTHING
       RETURNING id, created_at
     `;
+    if (!row) {
+      throw createError("You've already sent them this book.", 409);
+    }
 
     return {
-      shareId: row!.id,
-      sharedAt: row!.created_at,
+      shareId: row.id,
+      sharedAt: row.created_at,
       recipient,
     };
   },

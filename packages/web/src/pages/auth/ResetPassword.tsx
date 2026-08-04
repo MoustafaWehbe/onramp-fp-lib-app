@@ -50,14 +50,28 @@ export function ResetPassword() {
       });
       setDone(true);
     } catch (err) {
-      const status = (err as { response?: { status?: number } }).response
-        ?.status;
+      const resp = (
+        err as {
+          response?: {
+            status?: number;
+            data?: { errors?: { field?: string; message?: string }[] };
+          };
+        }
+      ).response;
+      // A 422 is the validator speaking — and it can be about the PASSWORD
+      // (fixable here) or the token's shape (a broken link). Only the latter
+      // deserves the invalid-link message.
+      const passwordProblem =
+        resp?.status === 422
+          ? resp.data?.errors?.find((e) => e.field === "password")?.message
+          : undefined;
       setError(
-        status === 400 || status === 422
-          ? "That reset link is invalid or has expired. Ask for a new one below."
-          : status === 429
-            ? "Too many tries — wait a few minutes, then try again."
-            : "That didn’t go through. Try again in a moment.",
+        passwordProblem ??
+          (resp?.status === 400 || resp?.status === 422
+            ? "That reset link is invalid or has expired. Ask for a new one below."
+            : resp?.status === 429
+              ? "Too many tries — wait a few minutes, then try again."
+              : "That didn’t go through. Try again in a moment."),
       );
     }
   };

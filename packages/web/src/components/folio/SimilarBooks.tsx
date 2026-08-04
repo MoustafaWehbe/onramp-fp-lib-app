@@ -37,7 +37,7 @@ export function SimilarBooks({ bookId }: { bookId: string }) {
         )}
       </div>
 
-      {isLoading || isRefetching ? (
+      {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
@@ -54,7 +54,7 @@ export function SimilarBooks({ bookId }: { bookId: string }) {
             </div>
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !data ? (
         <div className="flex flex-col items-start justify-between gap-4 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-5 sm:flex-row sm:items-center">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-destructive">
@@ -69,6 +69,41 @@ export function SimilarBooks({ bookId }: { bookId: string }) {
             Try again
           </Button>
         </div>
+      ) : isError && data?.status === "ok" ? (
+        // A failed REFRESH keeps what was already on screen — the loaded
+        // recommendations beat an error panel (60ce50c doctrine).
+        <>
+          <p className="rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 px-3.5 py-2 text-xs text-destructive">
+            The refresh didn&rsquo;t go through — these are the previous
+            suggestions.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {data.items.map((s) => (
+              <Link
+                key={s.id}
+                to={`/books/${s.id}`}
+                className="flex gap-4 rounded-[var(--radius)] border border-border bg-card p-4 transition-colors hover:border-primary/40"
+              >
+                <div className="w-16 shrink-0">
+                  <BookCover
+                    title={s.title}
+                    author={s.author}
+                    coverImage={s.coverImage}
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm font-semibold leading-snug text-foreground">
+                    {s.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{s.author}</p>
+                  <p className="pt-0.5 font-display text-[0.85rem] leading-relaxed text-foreground/80">
+                    {s.why}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
       ) : data?.status === "thin" ? (
         <div className="space-y-3 rounded-[var(--radius)] border border-dashed border-border bg-card p-7">
           <div className="flex items-end gap-1.5" aria-hidden>
