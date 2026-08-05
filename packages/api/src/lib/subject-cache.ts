@@ -19,6 +19,11 @@ const STALE_AFTER_MS = 24 * 60 * 60 * 1_000;
  * would still wait on TCP — a cache is never worth that, so it loses the race.
  */
 const CACHE_OP_TIMEOUT_MS = 250;
+/** How long the cache sits out after a timeout forces a client rebuild. */
+const CLIENT_COOLDOWN_MS = 5_000;
+
+/** Distinguishes "the socket went quiet" from an ordinary command failure. */
+class CacheTimeout extends Error {}
 
 interface CachedSubject {
   fetchedAt: number;
@@ -58,6 +63,10 @@ function cacheClient(): IORedis {
         enableOfflineQueue: false,
         lazyConnect: true,
         connectTimeout: 1_000,
+        // A cache read is only useful in the moment it was asked for. Never
+        // replay one across a reconnect — the answer would arrive for a
+        // request that finished long ago.
+        autoResendUnfulfilledCommands: false,
       },
     );
     // ioredis is an EventEmitter, and an unheard "error" event is a thrown
@@ -71,18 +80,49 @@ function cacheClient(): IORedis {
 }
 
 /**
+ * Throw the client away and sit the cache out for a moment.
+ *
+ * `enableOfflineQueue: false` covers a socket that refuses writes, but not one
+ * that accepts them and never answers: that command stays in ioredis'
+ * commandQueue even after the caller stops awaiting it. Abandoning enough of
+ * them would be the same slow accumulation in a different queue, so a timeout
+ * ends the connection rather than leaving commands stranded on it. The
+ * cooldown keeps a dead host from being redialled on every lookup.
+ */
+let cooldownUntil = 0;
+
+function dropClient(reason: string): void {
+  const dying = client;
+  client = null;
+  cooldownUntil = Date.now() + CLIENT_COOLDOWN_MS;
+  try {
+    dying?.disconnect();
+  } catch {
+    // already gone; nothing to release
+  }
+  console.error(
+    `[ol-cache] dropped the cache client after ${reason}; skipping the cache ` +
+      `for ${CLIENT_COOLDOWN_MS}ms`,
+  );
+}
+
+/**
  * Hand back a connected client, or null to skip the cache this round. Nothing
  * here is load-bearing for safety — the connection options are — it only
  * decides whether it is worth issuing a command at all.
  */
 async function connected(): Promise<IORedis | null> {
+  if (Date.now() < cooldownUntil) return null;
   const c = cacheClient();
   if (c.status === "ready") return c;
   // "wait" is the lazyConnect idle state; "end" follows a failed attempt.
   if (c.status === "wait" || c.status === "end") {
     try {
       await withTimeout(c.connect(), "connect");
-    } catch {
+    } catch (err) {
+      // A connect that stalls leaves a half-open client behind; a refused one
+      // is simply down. Either way this round is a miss.
+      if (err instanceof CacheTimeout) dropClient("a connect timeout");
       return null;
     }
     // connect() mutates status; the check above narrowed it, so re-read wide.
@@ -96,7 +136,7 @@ function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
   let timer: NodeJS.Timeout;
   const ceiling = new Promise<never>((_, reject) => {
     timer = setTimeout(
-      () => reject(new Error(`redis ${label} timed out`)),
+      () => reject(new CacheTimeout(`redis ${label} timed out`)),
       CACHE_OP_TIMEOUT_MS,
     );
   });
@@ -121,6 +161,7 @@ async function read(subject: string): Promise<CachedSubject | null> {
     }
     return parsed;
   } catch (err) {
+    if (err instanceof CacheTimeout) dropClient(`a read timeout on "${subject}"`);
     console.error(
       `[ol-cache] read failed for "${subject}"`,
       err instanceof Error ? err.message : err,
@@ -140,6 +181,7 @@ async function write(subject: string, works: OpenLibraryWork[]): Promise<void> {
       "set",
     );
   } catch (err) {
+    if (err instanceof CacheTimeout) dropClient(`a write timeout on "${subject}"`);
     console.error(
       `[ol-cache] write failed for "${subject}"`,
       err instanceof Error ? err.message : err,

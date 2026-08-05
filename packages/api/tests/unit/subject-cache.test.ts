@@ -19,6 +19,7 @@ const redisMock = {
     store.set(key, value);
     return "OK";
   }),
+  disconnect: jest.fn(),
   quit: jest.fn(async () => "OK"),
 };
 
@@ -37,13 +38,13 @@ jest.mock("@starter-kit/shared", () => ({
   embeddingsQueue: { close: jest.fn(async () => undefined) },
 }));
 
-// Imported after the mock so the module picks it up.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { withSubjectCache } = require("../../src/lib/subject-cache") as {
-  withSubjectCache: (
-    f: (s: string) => Promise<OpenLibraryWork[]>,
-  ) => (s: string) => Promise<OpenLibraryWork[]>;
-};
+type Wrap = (
+  f: (s: string) => Promise<OpenLibraryWork[]>,
+) => (s: string) => Promise<OpenLibraryWork[]>;
+
+// The module holds real state — the lazy client and the post-timeout cooldown
+// — so each test gets a fresh copy rather than inheriting the last one's.
+let withSubjectCache: Wrap;
 
 const KEY = "ol:subject:v1:poetry";
 const works: OpenLibraryWork[] = [
@@ -68,6 +69,11 @@ beforeEach(() => {
     store.set(key, value);
     return "OK";
   });
+
+  jest.resetModules();
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  withSubjectCache = (require("../../src/lib/subject-cache") as { withSubjectCache: Wrap })
+    .withSubjectCache;
 });
 
 describe("withSubjectCache", () => {
@@ -178,6 +184,26 @@ describe("withSubjectCache", () => {
     await cached("poetry"); // warm: same client, served from cache
     expect(redisMock.connect).toHaveBeenCalledTimes(1);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the client after a timeout and sits the cache out", async () => {
+    // A socket that accepts writes but never answers keeps the command in
+    // ioredis' commandQueue; abandoning the promise doesn't remove it, so the
+    // connection is ended rather than left holding stranded commands.
+    redisMock.get.mockImplementationOnce(() => new Promise(() => {}));
+    const fetcher = jest.fn(async () => works);
+    const cached = withSubjectCache(fetcher);
+
+    await expect(cached("poetry")).resolves.toEqual(works);
+    expect(redisMock.disconnect).toHaveBeenCalledTimes(1);
+
+    // Cooldown: the next lookup shouldn't touch Redis at all.
+    redisMock.get.mockClear();
+    redisMock.set.mockClear();
+    await expect(cached("poetry")).resolves.toEqual(works);
+    expect(redisMock.get).not.toHaveBeenCalled();
+    expect(redisMock.set).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it("treats a malformed cache entry as a miss", async () => {
