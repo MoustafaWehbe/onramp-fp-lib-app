@@ -18,11 +18,11 @@ const SORTS = [
  *  empty states (first-run vs filtered-empty). */
 export function Library() {
   const [filters, setFilters] = useState<BookFilters>({ sort: "-createdAt" });
-  const { data: books, isLoading } = useBooks(filters);
+  const { data: books, isLoading, isError, refetch } = useBooks(filters);
 
   // The unfiltered count tells first-run ("no books at all") apart from
   // filtered-empty ("no books match") — they're different screens in the design.
-  const { data: allBooks } = useBooks({});
+  const { data: allBooks, isLoading: totalLoading } = useBooks({});
   const total = allBooks?.length ?? 0;
 
   const set = (patch: Partial<BookFilters>) =>
@@ -155,7 +155,22 @@ export function Library() {
         </div>
       )}
 
-      {isLoading ? (
+      {isError && !books ? (
+        // A failed query must not fall through to the empty states below —
+        // "Your shelf is waiting" would be a lie about a library that exists.
+        <EmptyState
+          title="Your library wouldn’t load."
+          line="The books are all still there — this page just couldn’t reach them. Try again in a moment."
+          action={
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading || (books?.length === 0 && totalLoading) ? (
+        // An empty page can't pick between first-run and filtered-empty until
+        // the unfiltered count has answered — keep the skeleton, don't flash
+        // the wrong empty state.
         <BookGridShimmer />
       ) : books && books.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
@@ -163,8 +178,10 @@ export function Library() {
             <BookCard key={book.id} book={book} />
           ))}
         </div>
-      ) : total === 0 ? (
-        // A3 — first-run empty library.
+      ) : allBooks && total === 0 ? (
+        // A3 — first-run empty library. Gated on the unfiltered query having
+        // ANSWERED zero: if it failed, we fall to filtered-empty below rather
+        // than claim a library we couldn't count is empty.
         <EmptyState
           title="Your shelf is waiting."
           line="Add the book on your night table, or the one you finished last month. This library is yours alone — no one is watching it fill up."

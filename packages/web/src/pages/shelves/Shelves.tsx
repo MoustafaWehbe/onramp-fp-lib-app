@@ -46,7 +46,7 @@ function SpineStack({ seed, count }: { seed: string; count: number }) {
 
 /** Design C9 — the custom shelf list, with C10's create form inline. */
 export function Shelves() {
-  const { data: shelves, isLoading } = useShelves();
+  const { data: shelves, isLoading, isError, refetch } = useShelves();
   const createShelf = useCreateShelf();
 
   const addBook = useAddBookToAnyShelf();
@@ -218,7 +218,19 @@ export function Shelves() {
         </form>
       )}
 
-      {isLoading ? (
+      {isError && !shelves ? (
+        // A failed query must not fall through to the create-your-first-shelf
+        // empty state — that would misreport shelves that exist.
+        <EmptyState
+          title="Your shelves wouldn’t load."
+          line="They're all still there — this page just couldn’t reach them. Try again in a moment."
+          action={
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <div className="grid gap-6 sm:grid-cols-2">
           <Shimmer className="h-36 w-full" />
           <Shimmer className="h-36 w-full" />

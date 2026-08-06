@@ -5,6 +5,7 @@ import {
 } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
 import { fetchSubjectWorks, type OpenLibraryWork } from "../lib/open-library";
+import { withSubjectCache } from "../lib/subject-cache";
 
 export type { OpenLibraryWork } from "../lib/open-library";
 
@@ -27,8 +28,10 @@ export interface RetrievalDeps {
   embed: (text: string) => Promise<number[]>;
 }
 
+// The cache wraps the DEFAULT fetcher only: a caller (or a test) that injects
+// its own fetchSubjectWorks bypasses Redis entirely and stays hermetic.
 const defaultDeps: RetrievalDeps = {
-  fetchSubjectWorks,
+  fetchSubjectWorks: withSubjectCache(fetchSubjectWorks),
   embed: generateEmbedding,
 };
 
@@ -88,19 +91,26 @@ export async function retrieveCandidates(
   // Fetch + dedup candidate works across subjects. A single failing subject is
   // tolerated, but a total Open Library outage surfaces rather than silently
   // returning an empty list.
+  //
+  // The fan-out runs in parallel: sequentially, three subjects against an
+  // 8s timeout is a 24s worst case, and it was 45s before the timeout came
+  // down. MAX_SUBJECTS is 3, which is exactly Open Library's allowance for
+  // identified callers (3 req/s) — hence the User-Agent in lib/open-library.
   const worksById = new Map<string, OpenLibraryWork>();
   let fetchErrors = 0;
-  for (const subject of subjects) {
-    try {
-      const works = await deps.fetchSubjectWorks(subject);
-      for (const work of works) {
-        const dedupKey =
-          extractOpenLibraryId(work.key) ??
-          `${work.title} ${firstAuthor(work)}`.toLowerCase();
-        if (!worksById.has(dedupKey)) worksById.set(dedupKey, work);
-      }
-    } catch {
+  const settled = await Promise.allSettled(
+    subjects.map((subject) => deps.fetchSubjectWorks(subject)),
+  );
+  for (const result of settled) {
+    if (result.status === "rejected") {
       fetchErrors++;
+      continue;
+    }
+    for (const work of result.value) {
+      const dedupKey =
+        extractOpenLibraryId(work.key) ??
+        `${work.title} ${firstAuthor(work)}`.toLowerCase();
+      if (!worksById.has(dedupKey)) worksById.set(dedupKey, work);
     }
   }
   if (worksById.size === 0) {

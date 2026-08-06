@@ -9,12 +9,12 @@
     "dev": "tsc --project tsconfig.build.json --watch",
     "clean": "rm -rf dist",
     "lint": "eslint .",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset",
-    "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:generate": "node scripts/with-root-env.js prisma generate",
+    "db:migrate": "node scripts/with-root-env.js prisma migrate dev",
+    "db:deploy": "node scripts/with-root-env.js prisma migrate deploy",
+    "db:reset": "node scripts/with-root-env.js prisma migrate reset",
+    "db:seed": "node scripts/with-root-env.js prisma db seed",
+    "db:studio": "node scripts/with-root-env.js prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

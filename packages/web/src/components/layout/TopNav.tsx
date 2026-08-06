@@ -7,17 +7,18 @@ const NAV = [
   { to: "/library", label: "Library" },
   { to: "/shelves", label: "Shelves" },
   { to: "/discover", label: "Discover" },
+  { to: "/memory", label: "Memory" },
   { to: "/metrics", label: "Metrics" },
 ];
 
-/** The design's four-item top nav: Library · Shelves · Discover · Metrics. */
+/** The design's top nav: Library · Shelves · Discover · Memory · Metrics (G19). */
 export function TopNav() {
   const { data: invites } = usePendingInvites();
   const waiting = invites?.length ?? 0;
 
   return (
     <header className="border-b border-border/70 bg-background">
-      <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-8 px-12">
+      <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-4 px-4 sm:gap-8 sm:px-8 lg:px-12">
         <Link
           to="/library"
           className="font-display text-xl italic text-foreground"
@@ -25,7 +26,9 @@ export function TopNav() {
           Folio
         </Link>
 
-        <nav className="flex h-16 items-stretch gap-7">
+        {/* Five items don't fit a phone; the nav scrolls inside itself
+            rather than pushing the page wide. */}
+        <nav className="flex h-16 items-stretch gap-5 overflow-x-auto whitespace-nowrap sm:gap-7">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -51,14 +54,15 @@ export function TopNav() {
             to="/shared"
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-1.5 text-sm transition-colors",
+                "flex items-center gap-1.5 whitespace-nowrap text-sm transition-colors",
                 isActive
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )
             }
           >
-            Shared with you
+            <span className="sm:hidden">Shared</span>
+            <span className="hidden sm:inline">Shared with you</span>
             {waiting > 0 && (
               <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.6rem] font-medium text-primary-foreground">
                 {waiting}

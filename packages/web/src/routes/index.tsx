@@ -7,6 +7,8 @@ import { useAuth } from "../hooks/useAuth";
 import { Welcome } from "../pages/Welcome";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
+import { ForgotPassword } from "../pages/auth/ForgotPassword";
+import { ResetPassword } from "../pages/auth/ResetPassword";
 import { Settings } from "../pages/dashboard/Settings";
 import { Library } from "../pages/library/Library";
 import { AddBook } from "../pages/library/AddBook";
@@ -14,8 +16,11 @@ import { BookDetail } from "../pages/library/BookDetail";
 import { Journal } from "../pages/library/Journal";
 import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
+import { Memory } from "../pages/memory/Memory";
+import { YearInReading } from "../pages/memory/YearInReading";
 import { Metrics } from "../pages/metrics/Metrics";
 import { Discover } from "../pages/discover/Discover";
+import { MoodShelf } from "../pages/discover/MoodShelf";
 import { SharedShelves } from "../pages/shared/SharedShelves";
 import { SharedShelfDetail } from "../pages/shared/SharedShelfDetail";
 import { Admin } from "../pages/admin/Admin";
@@ -52,6 +57,9 @@ export function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* The landing page for the emailed link (?token=…). */}
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* Protected app routes */}
@@ -65,11 +73,16 @@ export function AppRoutes() {
           />
           <Route path="/library" element={<Library />} />
           <Route path="/books/new" element={<AddBook />} />
+          {/* Same form, edit mode — BookDetail has linked here all along. */}
+          <Route path="/books/:id/edit" element={<AddBook />} />
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/books/:id/journal" element={<Journal />} />
           <Route path="/shelves" element={<Shelves />} />
           <Route path="/shelves/:id" element={<ShelfDetail />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/discover/mood" element={<MoodShelf />} />
+          <Route path="/memory" element={<Memory />} />
+          <Route path="/memory/year" element={<YearInReading />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

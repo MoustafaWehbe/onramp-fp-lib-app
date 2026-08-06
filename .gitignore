@@ -46,3 +46,7 @@ Thumbs.db
 
 # ─── TypeScript ───────────────────────────────────────────────────────────────
 *.tsbuildinfo
+
+# ─── Uploaded covers (design B6a) ───
+packages/api/uploads/
+graphify-out/

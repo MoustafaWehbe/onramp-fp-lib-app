@@ -218,4 +218,58 @@ describe("retrieveCandidates", () => {
       statusCode: 502,
     });
   });
+
+  // The fan-out runs under Promise.allSettled; these pin the semantics the
+  // sequential loop had, since a rejected promise is easy to mishandle.
+  it("tolerates one failing subject and returns the rest", async () => {
+    const user = await seedUser();
+    await seedProfile(user.id, profileVector(), [
+      "Science fiction",
+      "Fantasy",
+      "Poetry",
+    ]);
+
+    const fetchSubjectWorks = jest.fn(async (subject: string) => {
+      if (subject === "fantasy") throw new Error("network down");
+      return [work(`OL-${subject}`, `From ${subject}`, "Author")];
+    });
+    const deps: RetrievalDeps = {
+      fetchSubjectWorks,
+      embed: jest.fn(async () => gradedVec(0.5)),
+    };
+
+    const result = await retrieveCandidates(user.id, {}, deps);
+    expect(fetchSubjectWorks).toHaveBeenCalledTimes(3);
+    expect(result.map((c) => c.title).sort()).toEqual([
+      "From poetry",
+      "From science_fiction",
+    ]);
+  });
+
+  it("issues the subject fetches concurrently, not one after another", async () => {
+    const user = await seedUser();
+    await seedProfile(user.id, profileVector(), [
+      "Science fiction",
+      "Fantasy",
+      "Poetry",
+    ]);
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchSubjectWorks = jest.fn(async (subject: string) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      return [work(`OL-${subject}`, `From ${subject}`, "Author")];
+    });
+
+    await retrieveCandidates(
+      user.id,
+      {},
+      { fetchSubjectWorks, embed: jest.fn(async () => gradedVec(0.5)) },
+    );
+    // Sequentially this would peak at 1; the whole point is that it doesn't.
+    expect(maxInFlight).toBe(3);
+  });
 });

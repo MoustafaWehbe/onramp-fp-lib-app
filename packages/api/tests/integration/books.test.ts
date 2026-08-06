@@ -78,6 +78,38 @@ describe("Books CRUD (integration, real database)", () => {
     expect(finished.body.data).toHaveLength(0);
   });
 
+  it("defaults format to PHYSICAL when omitted (design B6a)", async () => {
+    const res = await authed(request(app).get(`/api/books/${bookId}`));
+    expect(res.status).toBe(200);
+    expect(res.body.data.format).toBe("PHYSICAL");
+  });
+
+  it("round-trips an explicit format through create and read", async () => {
+    const created = await authed(request(app).post("/api/books")).send({
+      title: "Salt & Ember",
+      author: "J. R. Okafor",
+      format: "AUDIOBOOK",
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.data.format).toBe("AUDIOBOOK");
+
+    const read = await authed(
+      request(app).get(`/api/books/${created.body.data.id}`),
+    );
+    expect(read.body.data.format).toBe("AUDIOBOOK");
+  });
+
+  it("rejects an unknown format as a client error, never a 500", async () => {
+    const res = await authed(request(app).post("/api/books")).send({
+      title: "Bad Format",
+      author: "Nobody",
+      format: "VINYL",
+    });
+    // The zod validate middleware answers 422 — the contract under test is
+    // that a bad enum value is the caller's error, not a server crash.
+    expect(res.status).toBe(422);
+  });
+
   it("rejects a duplicate (title, author) with 409", async () => {
     const res = await authed(request(app).post("/api/books")).send({
       title: "The Left Hand of Darkness",

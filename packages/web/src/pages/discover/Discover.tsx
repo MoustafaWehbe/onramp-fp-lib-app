@@ -2,11 +2,14 @@ import { useState } from "react";
 import {
   useDiscoveryReports,
   useGenerateReport,
+  useRefreshTasteProfile,
 } from "../../hooks/useDiscovery";
 import { useBooks, useCreateBook } from "../../hooks/useBooks";
+import { apiErrorMessage } from "../../lib/api-client";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { BookCover } from "../../components/folio/BookCover";
+import { EmptyState } from "../../components/folio/EmptyState";
 import { Link } from "react-router-dom";
 import { buttonVariants } from "../../components/ui/button";
 import type { DiscoveryItem } from "../../lib/types";
@@ -22,12 +25,25 @@ const MOOD_EXAMPLES = [
 /** Design D13–D15 — discovery entry, the mood modifier, and the report. */
 export function Discover() {
   const generate = useGenerateReport();
-  const { data: history } = useDiscoveryReports();
-  const { data: finished } = useBooks({ status: "FINISHED" });
+  const {
+    data: history,
+    isError: historyError,
+    refetch: refetchHistory,
+  } = useDiscoveryReports();
+  const {
+    data: finished,
+    isError: finishedError,
+    refetch: refetchFinished,
+  } = useBooks({ status: "FINISHED" });
 
+  const refreshProfile = useRefreshTasteProfile();
   const [moodOpen, setMoodOpen] = useState(false);
   const [mood, setMood] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // True when the failure was specifically the missing taste profile — the
+  // one error with a remedy this page can offer directly.
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [lastMood, setLastMood] = useState<string | undefined>(undefined);
 
   const createBook = useCreateBook();
   // Per-recommendation UI state, keyed by rank within the visible report.
@@ -43,15 +59,48 @@ export function Discover() {
 
   async function run(withMood?: string) {
     setError(null);
+    setNeedsProfile(false);
     setMoodOpen(false);
+    setLastMood(withMood?.trim() || undefined);
     try {
       await generate.mutateAsync(withMood?.trim() || undefined);
       setItemState({});
-    } catch {
+    } catch (err) {
+      // The API's message is precise ("No taste profile yet — refresh…");
+      // never replace it with a vaguer guess. The generic line is only for
+      // failures that carried no message at all.
+      const message = apiErrorMessage(err);
+      const status = (err as { response?: { status?: number } }).response
+        ?.status;
+      setNeedsProfile(
+        status === 422 && /taste profile/i.test(message ?? ""),
+      );
       setError(
-        "Couldn't build a report. The model may be unreachable, or you may not have enough finished books yet.",
+        message ??
+          "Couldn't build a report — the request never reached the model. Try again in a moment.",
       );
     }
+  }
+
+  /**
+   * The explicit remedy for the missing-profile failure: build the profile
+   * (its own slow, labelled step), then retry the same report. Never run
+   * silently behind a button that claims to do something else.
+   */
+  async function buildProfileAndRetry() {
+    setError(null);
+    try {
+      await refreshProfile.mutateAsync();
+    } catch (err) {
+      setNeedsProfile(false);
+      setError(
+        apiErrorMessage(err) ??
+          "Couldn't build the taste profile — the model may be unreachable.",
+      );
+      return;
+    }
+    setNeedsProfile(false);
+    await run(lastMood);
   }
 
   async function wantToRead(item: DiscoveryItem) {
@@ -72,6 +121,28 @@ export function Discover() {
         setError("Couldn't add that book to your library.");
       }
     }
+  }
+
+  // Failed queries must not fall through to "No report yet · 0 of 5" below —
+  // that would misreport a library and reports that exist.
+  if ((historyError || finishedError) && !report && !generate.isPending) {
+    return (
+      <EmptyState
+        title="Discovery wouldn’t load."
+        line="Your library and past reports are untouched — this page just couldn’t reach them. Try again in a moment."
+        action={
+          <Button
+            variant="outline"
+            onClick={() => {
+              void refetchHistory();
+              void refetchFinished();
+            }}
+          >
+            Try again
+          </Button>
+        }
+      />
+    );
   }
 
   // Design D13 empty — "five finished books is enough to start", with a real
@@ -101,13 +172,37 @@ export function Discover() {
             {Math.min(finishedCount, goal)} of {goal} finished books
           </p>
         </div>
+        {/* The try-anyway path fails BACK INTO this early return — without
+            this line the failure message was set and never rendered, and the
+            click appeared to do nothing. */}
+        {error && (
+          <div className="space-y-2 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4 text-left">
+            <p className="text-sm font-semibold text-destructive">
+              That didn&rsquo;t work.
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {error}
+            </p>
+            {needsProfile && (
+              <Button
+                size="sm"
+                onClick={() => void buildProfileAndRetry()}
+                disabled={refreshProfile.isPending || generate.isPending}
+              >
+                {refreshProfile.isPending
+                  ? "Building your taste profile…"
+                  : "Build the taste profile, then retry"}
+              </Button>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-center gap-3">
           <Link to="/library" className={buttonVariants()}>
             Go to your library
           </Link>
           {canGenerate && (
             <Button variant="ghost" onClick={() => run()}>
-              Try a report anyway
+              {error ? "Try again" : "Try a report anyway"}
             </Button>
           )}
         </div>
@@ -132,6 +227,13 @@ export function Discover() {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Design D16 — the mood shelf lives beside the report generator. */}
+          <Link
+            to="/discover/mood"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Mood shelf
+          </Link>
           <Button variant="outline" onClick={() => setMoodOpen((m) => !m)}>
             Add a mood
           </Button>
@@ -213,7 +315,28 @@ export function Discover() {
         </section>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {/* Same failure register as the empty state — the mood path lands here. */}
+      {error && (
+        <div className="space-y-2 rounded-[var(--radius)] border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm font-semibold text-destructive">
+            That didn&rsquo;t work.
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {error}
+          </p>
+          {needsProfile && (
+            <Button
+              size="sm"
+              onClick={() => void buildProfileAndRetry()}
+              disabled={refreshProfile.isPending || generate.isPending}
+            >
+              {refreshProfile.isPending
+                ? "Building your taste profile…"
+                : "Build the taste profile, then retry"}
+            </Button>
+          )}
+        </div>
+      )}
 
       {report && !generate.isPending && (
         <section className="space-y-6">

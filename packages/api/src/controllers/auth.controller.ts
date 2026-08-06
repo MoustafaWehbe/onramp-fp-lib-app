@@ -49,6 +49,49 @@ export const authController = {
     }
   },
 
+  async forgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      // The raw token is deliberately not part of the response — it travels
+      // only in the emailed link. The answer is identical whether or not the
+      // address has an account.
+      await authService.requestPasswordReset(
+        (req.body as { email: string }).email,
+      );
+      res.json({
+        data: {
+          message:
+            "If that address has a Folio account, a reset link is on its way.",
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async resetPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { token, password } = req.body as {
+        token: string;
+        password: string;
+      };
+      await authService.resetPassword(token, password);
+      // The reset revoked every session server-side; drop this browser's
+      // cookies too so its state matches.
+      clearAuthCookies(res);
+      res.json({ data: { message: "Password changed — log in with it." } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { user, accessToken, refreshToken } = await authService.login({

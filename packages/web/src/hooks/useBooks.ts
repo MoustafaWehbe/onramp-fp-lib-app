@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
-import type { Book, JournalEntry, ReadingStatus } from "../lib/types";
+import type {
+  Book,
+  BookFormat,
+  JournalEntry,
+  ReadingStatus,
+} from "../lib/types";
 
+/** Library list filters; empty values are stripped before the request. */
 export interface BookFilters {
   status?: ReadingStatus;
   genre?: string;
@@ -10,6 +16,7 @@ export interface BookFilters {
   sort?: string;
 }
 
+/** Create/update payload for a book — mirrors the API zod schema. */
 export interface BookInput {
   title: string;
   author: string;
@@ -17,7 +24,10 @@ export interface BookInput {
   coverImage?: string;
   year?: number;
   pageCount?: number;
+  format?: BookFormat;
   status?: ReadingStatus;
+  /** Set when the book came from the B6a catalog search — powers dedup. */
+  openLibraryId?: string;
 }
 
 /** Drop empty filter values so we don't send `?status=` and friends. */
@@ -27,6 +37,7 @@ function clean(filters: BookFilters) {
   );
 }
 
+/** The reader's library, filtered and sorted server-side. */
 export function useBooks(filters: BookFilters = {}) {
   return useQuery({
     queryKey: ["books", filters],
@@ -39,6 +50,7 @@ export function useBooks(filters: BookFilters = {}) {
   });
 }
 
+/** One owned book; disabled until an id exists. */
 export function useBook(id: string | undefined) {
   return useQuery({
     queryKey: ["book", id],
@@ -50,6 +62,7 @@ export function useBook(id: string | undefined) {
   });
 }
 
+/** Create a book; a 409 means the (title, author) pair already exists. */
 export function useCreateBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -61,6 +74,7 @@ export function useCreateBook() {
   });
 }
 
+/** Patch a book and refresh every view that shows it. */
 export function useUpdateBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -82,6 +96,7 @@ export function useUpdateBook() {
   });
 }
 
+/** Remove a book from the library (and, via cascade, its journal). */
 export function useDeleteBook() {
   const qc = useQueryClient();
   return useMutation({
@@ -92,6 +107,44 @@ export function useDeleteBook() {
   });
 }
 
+/** One "books like this one" card (B7a). */
+export interface SimilarBookItem {
+  id: string;
+  title: string;
+  author: string;
+  genre: string | null;
+  coverImage: string | null;
+  similarity: number;
+  why: string;
+}
+
+/** B7a payload: "ok" with items, or "thin" until enough books are embedded. */
+export interface SimilarBooksResult {
+  status: "ok" | "thin";
+  embeddedCount: number;
+  needed: number;
+  items: SimilarBookItem[];
+}
+
+/** Design B7a — "Books like this one", drawn only from the reader's own library. */
+export function useSimilarBooks(bookId: string | undefined) {
+  return useQuery({
+    queryKey: ["similar-books", bookId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: SimilarBooksResult }>(
+        `/books/${bookId}/similar`,
+      );
+      return data.data;
+    },
+    enabled: Boolean(bookId),
+    // Retrieval + a generation call can take a while and failures mean the
+    // engine is offline — surface that state instead of hammering it.
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** The private journal entry for a book; null until one is written. */
 export function useJournal(bookId: string | undefined) {
   return useQuery({
     queryKey: ["journal", bookId],
@@ -105,12 +158,33 @@ export function useJournal(bookId: string | undefined) {
   });
 }
 
+/**
+ * Design B8a — AI opening prompts for a blank reflection. POST because the
+ * server generates on demand; nothing about the request is persisted there.
+ */
+export function useJournalPrompts(bookId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["journal-prompts", bookId],
+    queryFn: async () => {
+      const { data } = await apiClient.post<{ data: { prompts: string[] } }>(
+        `/ai/journal-prompts/${bookId}`,
+      );
+      return data.data.prompts;
+    },
+    enabled: Boolean(bookId) && enabled,
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
+/** Journal save payload; the API gates it behind FINISHED. */
 export interface JournalInput {
   reflectionText: string;
   favoriteQuotes?: string[];
   rating?: number;
 }
 
+/** Upsert the reflection; every save re-queues the book's embedding. */
 export function useSaveJournal(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
