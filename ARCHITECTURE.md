@@ -130,7 +130,6 @@ erDiagram
 
 All routes are under `/api`. Auth is via an httpOnly `accessToken` cookie
 (`authenticate` middleware); role checks use the `authorize` middleware.
-Status legend: ✅ implemented · 🔶 scaffolded (stub) · 🔷 planned.
 
 Standard envelopes: success `{ "data": ... }`; error `{ "error": "message" }`;
 validation error `{ "error": "Validation failed", "errors": [{ "field", "message" }] }`.
