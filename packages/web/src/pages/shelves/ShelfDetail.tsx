@@ -63,7 +63,10 @@ export function ShelfDetail() {
             <Button variant="outline" onClick={() => refetch()}>
               Try again
             </Button>
-            <Link to="/shelves" className={buttonVariants({ variant: "ghost" })}>
+            <Link
+              to="/shelves"
+              className={buttonVariants({ variant: "ghost" })}
+            >
               Back to your shelves
             </Link>
           </div>

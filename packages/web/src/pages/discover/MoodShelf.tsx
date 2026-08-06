@@ -158,8 +158,7 @@ export function MoodShelf() {
       <div className="flex flex-col items-center gap-6 py-24 text-center">
         <ThinkBars />
         <h1 className="font-display text-2xl text-foreground">
-          Pulling a shelf together for{" "}
-          <span className="italic">{mood}</span>
+          Pulling a shelf together for <span className="italic">{mood}</span>
         </h1>
         <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
           Reading back through your books and what you wrote about them. This
@@ -194,7 +193,10 @@ export function MoodShelf() {
         </p>
         <div className="flex gap-2.5 pt-2">
           <Button onClick={() => run(mood)}>Try again</Button>
-          <Link to="/shelves" className={buttonVariants({ variant: "outline" })}>
+          <Link
+            to="/shelves"
+            className={buttonVariants({ variant: "outline" })}
+          >
             Browse your shelves
           </Link>
         </div>
@@ -242,12 +244,15 @@ export function MoodShelf() {
             books
           </li>
           <li className="flex gap-2.5">
-            <span className="text-primary">·</span> Or write a reflection on
-            one you&rsquo;ve already finished
+            <span className="text-primary">·</span> Or write a reflection on one
+            you&rsquo;ve already finished
           </li>
         </ul>
         <div className="flex gap-2.5 pt-2">
-          <Link to="/library" className={buttonVariants({ variant: "default" })}>
+          <Link
+            to="/library"
+            className={buttonVariants({ variant: "default" })}
+          >
             Go to your library
           </Link>
           <Button variant="outline" onClick={() => run(mood, true)}>
@@ -274,8 +279,8 @@ export function MoodShelf() {
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {result.items.length} book
-              {result.items.length === 1 ? "" : "s"} that fit the mood, all
-              from your own library. Have a look and keep what&rsquo;s right —
+              {result.items.length === 1 ? "" : "s"} that fit the mood, all from
+              your own library. Have a look and keep what&rsquo;s right —
               it&rsquo;s a suggestion, not a reading list.
             </p>
           </div>
@@ -350,8 +355,8 @@ export function MoodShelf() {
           What are you in the mood for?
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Describe it however it comes out. Folio builds a small shelf from
-          what it knows of your taste — your own reading, nobody else&rsquo;s.
+          Describe it however it comes out. Folio builds a small shelf from what
+          it knows of your taste — your own reading, nobody else&rsquo;s.
         </p>
       </div>
 

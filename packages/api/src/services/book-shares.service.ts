@@ -95,7 +95,13 @@ export const bookSharesService = {
   async listForBook(ownerId: string, bookId: string) {
     await booksService.getOwned(ownerId, bookId);
     const rows = await prisma.$queryRaw<
-      { id: string; created_at: Date; rid: string; rname: string; remail: string }[]
+      {
+        id: string;
+        created_at: Date;
+        rid: string;
+        rname: string;
+        remail: string;
+      }[]
     >`
       SELECT bs.id, bs.created_at, u.id AS rid, u.name AS rname, u.email AS remail
       FROM book_shares bs

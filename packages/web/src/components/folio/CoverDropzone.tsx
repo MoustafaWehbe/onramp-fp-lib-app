@@ -62,9 +62,7 @@ export function CoverDropzone({
           headers: { "Content-Type": "application/octet-stream" },
           onUploadProgress: (e) => {
             const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
-            setState((s) =>
-              s.kind === "uploading" ? { ...s, pct } : s,
-            );
+            setState((s) => (s.kind === "uploading" ? { ...s, pct } : s));
           },
         },
       );

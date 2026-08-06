@@ -140,7 +140,9 @@ function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
       CACHE_OP_TIMEOUT_MS,
     );
   });
-  return Promise.race([op, ceiling]).finally(() => clearTimeout(timer)) as Promise<T>;
+  return Promise.race([op, ceiling]).finally(() =>
+    clearTimeout(timer),
+  ) as Promise<T>;
 }
 
 /**
@@ -156,12 +158,16 @@ async function read(subject: string): Promise<CachedSubject | null> {
     const raw = await withTimeout(redis.get(keyFor(subject)), "get");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedSubject;
-    if (!Array.isArray(parsed?.works) || typeof parsed?.fetchedAt !== "number") {
+    if (
+      !Array.isArray(parsed?.works) ||
+      typeof parsed?.fetchedAt !== "number"
+    ) {
       return null;
     }
     return parsed;
   } catch (err) {
-    if (err instanceof CacheTimeout) dropClient(`a read timeout on "${subject}"`);
+    if (err instanceof CacheTimeout)
+      dropClient(`a read timeout on "${subject}"`);
     console.error(
       `[ol-cache] read failed for "${subject}"`,
       err instanceof Error ? err.message : err,
@@ -181,7 +187,8 @@ async function write(subject: string, works: OpenLibraryWork[]): Promise<void> {
       "set",
     );
   } catch (err) {
-    if (err instanceof CacheTimeout) dropClient(`a write timeout on "${subject}"`);
+    if (err instanceof CacheTimeout)
+      dropClient(`a write timeout on "${subject}"`);
     console.error(
       `[ol-cache] write failed for "${subject}"`,
       err instanceof Error ? err.message : err,

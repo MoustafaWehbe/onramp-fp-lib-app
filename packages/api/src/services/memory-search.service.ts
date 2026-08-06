@@ -185,7 +185,8 @@ function toHit(
         ...base,
         pre: (start > 0 ? "…" : "") + text.slice(start, idx),
         hit: text.slice(idx, idx + term.length),
-        post: text.slice(idx + term.length, end) + (end < text.length ? "…" : ""),
+        post:
+          text.slice(idx + term.length, end) + (end < text.length ? "…" : ""),
       };
     }
   }

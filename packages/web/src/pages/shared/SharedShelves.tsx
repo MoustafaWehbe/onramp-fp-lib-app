@@ -92,7 +92,11 @@ function ReceivedBookCard({ share }: { share: ReceivedBookShare }) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button size="sm" onClick={addToLibrary} disabled={createBook.isPending}>
+          <Button
+            size="sm"
+            onClick={addToLibrary}
+            disabled={createBook.isPending}
+          >
             Add to my library
           </Button>
           {added && (

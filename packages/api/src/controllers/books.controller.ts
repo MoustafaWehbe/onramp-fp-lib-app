@@ -106,7 +106,7 @@ export const booksController = {
     try {
       const result = await findSimilarBooks(
         req.user!.userId,
-        (req.params.id as string),
+        req.params.id as string,
       );
       res.json({ data: result });
     } catch (err) {

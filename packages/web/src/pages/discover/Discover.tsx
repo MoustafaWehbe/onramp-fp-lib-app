@@ -72,9 +72,7 @@ export function Discover() {
       const message = apiErrorMessage(err);
       const status = (err as { response?: { status?: number } }).response
         ?.status;
-      setNeedsProfile(
-        status === 422 && /taste profile/i.test(message ?? ""),
-      );
+      setNeedsProfile(status === 422 && /taste profile/i.test(message ?? ""));
       setError(
         message ??
           "Couldn't build a report — the request never reached the model. Try again in a moment.",

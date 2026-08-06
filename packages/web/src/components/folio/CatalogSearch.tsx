@@ -147,14 +147,22 @@ export function CatalogSearch({ onPick, onManual }: CatalogSearchProps) {
               className={cnRow(i === 0)}
             >
               <div className="w-8 shrink-0">
-                <BookCover title={r.title} author={r.author} coverImage={r.coverUrl} />
+                <BookCover
+                  title={r.title}
+                  author={r.author}
+                  coverImage={r.coverUrl}
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">
                   {r.title}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[r.author, r.year, r.pageCount ? `${r.pageCount} pages` : null]
+                  {[
+                    r.author,
+                    r.year,
+                    r.pageCount ? `${r.pageCount} pages` : null,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>

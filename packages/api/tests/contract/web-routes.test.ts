@@ -170,7 +170,8 @@ describe("web/API route contract", () => {
 
   it("every frontend request resolves against a registered route", () => {
     const misses = calls.filter(
-      (c) => !routes.some((r) => r.method === c.method && matches(c.path, r.path)),
+      (c) =>
+        !routes.some((r) => r.method === c.method && matches(c.path, r.path)),
     );
     const detail = misses
       .map((m) => `${m.method} ${m.path}  (${m.file})`)

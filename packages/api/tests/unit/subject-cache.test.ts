@@ -64,16 +64,22 @@ beforeEach(() => {
   redisMock.connect.mockImplementation(async () => {
     redisMock.status = "ready";
   });
-  redisMock.get.mockImplementation(async (key: string) => store.get(key) ?? null);
+  redisMock.get.mockImplementation(
+    async (key: string) => store.get(key) ?? null,
+  );
   redisMock.set.mockImplementation(async (key: string, value: string) => {
     store.set(key, value);
     return "OK";
   });
 
   jest.resetModules();
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  withSubjectCache = (require("../../src/lib/subject-cache") as { withSubjectCache: Wrap })
-    .withSubjectCache;
+  // require, not import: the point is a FRESH copy of the module after
+  // resetModules, which a hoisted import cannot give.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require("../../src/lib/subject-cache") as {
+    withSubjectCache: Wrap;
+  };
+  withSubjectCache = mod.withSubjectCache;
 });
 
 describe("withSubjectCache", () => {

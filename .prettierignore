@@ -18,3 +18,9 @@ packages/shared/prisma/migrations/
 # Local tooling output
 .claude/
 graphify-out/
+
+# The exported design canvas and its screenshots — generated artefacts from the
+# design tool, committed as reference. Reformatting a 1.4 MB machine-written
+# bundle would produce noise and risk corrupting it.
+planning-reference/design/
+planning-reference/screenshots/

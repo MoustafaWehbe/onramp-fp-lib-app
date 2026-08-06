@@ -59,6 +59,14 @@ export default [
     },
   },
 
+  // Plain .js tooling scripts are CommonJS by necessity — they run under bare
+  // Node before any build step, so `require` is the only import they have.
+  {
+    files: ["**/scripts/**/*.js"],
+    languageOptions: { sourceType: "commonjs" },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+
   // Must stay last: turns off every rule that would fight Prettier.
   prettierConfig,
 ];
