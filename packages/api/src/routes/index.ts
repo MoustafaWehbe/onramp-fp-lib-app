@@ -1,10 +1,13 @@
-import { Router } from "express";
+import { Router, static as serveStatic } from "express";
+import { authenticate } from "../middleware/authenticate";
+import { UPLOADS_DIR } from "../lib/cover-storage";
 import { authRouter } from "./auth.routes";
 import { booksRouter } from "./books.routes";
 import { shelvesRouter } from "./shelves.routes";
 import { sharesRouter } from "./shares.routes";
 import { analyticsRouter } from "./analytics.routes";
 import { aiRouter } from "./ai.routes";
+import { bookSharesRouter } from "./book-shares.routes";
 import { contributorsRouter } from "./contributors.routes";
 import { adminRouter } from "./admin.routes";
 
@@ -18,7 +21,11 @@ router.use("/shelves/:shelfId/shares", sharesRouter);
 router.use("/shelves", shelvesRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/ai", aiRouter);
+router.use("/book-shares", bookSharesRouter);
 router.use("/contributors", contributorsRouter);
 router.use("/admin", adminRouter);
+// Uploaded covers: any signed-in reader may load them (shared-book recipients
+// included); the cookie rides along on same-origin <img> requests.
+router.use("/uploads/covers", authenticate, serveStatic(UPLOADS_DIR));
 
 export { router };

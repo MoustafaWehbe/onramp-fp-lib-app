@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useJournal, useSaveJournal } from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
+import { EmptyState } from "../../components/folio/EmptyState";
+import { JournalPrompts } from "../../components/folio/JournalPrompts";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { cn } from "../../lib/utils";
 
@@ -17,7 +19,7 @@ const RATING_WORD: Record<number, string> = {
 export function Journal() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: book, isLoading } = useBook(id);
+  const { data: book, isLoading, isError, refetch } = useBook(id);
   const { data: journal } = useJournal(id);
   const saveJournal = useSaveJournal(id ?? "");
 
@@ -101,6 +103,22 @@ export function Journal() {
     return () => clearInterval(timer);
   });
 
+  // A settled failure must not read as loading — nothing written is at risk,
+  // but the page has to say the book couldn't be reached.
+  if (isError && !book) {
+    return (
+      <EmptyState
+        title="This book wouldn’t open."
+        line="Your journal is safe — the page just couldn’t reach the book. Try again in a moment."
+        action={
+          <Button variant="outline" onClick={() => refetch()}>
+            Try again
+          </Button>
+        }
+      />
+    );
+  }
+
   if (isLoading || !book) return <Shimmer className="h-64 w-full" />;
 
   return (
@@ -161,6 +179,23 @@ export function Journal() {
           )}
         </div>
       </section>
+
+      {/* Design B8a — AI openings, only while the reflection hasn't been
+          written yet. They suggest; the cursor below stays live throughout. */}
+      {!journal?.reflectionText && (
+        <JournalPrompts
+          // Keyed: the route keeps this component mounted across books, and
+          // its dismissed/hidden state is lazily read from storage — without
+          // the key, one book's dismissal would leak onto the next.
+          key={book.id}
+          bookId={book.id}
+          onPick={(prompt) =>
+            setReflectionText((text) =>
+              text.trim() ? `${text.trimEnd()}\n\n${prompt}\n` : `${prompt}\n`,
+            )
+          }
+        />
+      )}
 
       <section className="space-y-2">
         <textarea

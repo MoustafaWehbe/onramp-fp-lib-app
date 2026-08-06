@@ -12,3 +12,14 @@ export const addSharedBookSchema = z.object({
 });
 
 export type AddSharedBookInput = z.infer<typeof addSharedBookSchema>;
+
+/** Design E18 — share one book with one named person, by exact address. */
+export const shareBookSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export type ShareBookInput = z.infer<typeof shareBookSchema>;
+
+/** Route params feeding `::uuid` casts must be validated first, or a
+ *  malformed id becomes a Postgres cast error surfacing as a 500. */
+export const shareIdParamSchema = z.object({ shareId: z.string().uuid() });

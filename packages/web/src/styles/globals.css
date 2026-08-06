@@ -60,3 +60,25 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
+
+/* Design B8a/D16/G19 — the "thinking" pulse for AI in-flight states.
+   Lives here (not tailwind.config) so the animation ships with the tokens. */
+@keyframes think {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+.animate-think {
+  animation: think 1.2s ease-in-out infinite;
+}
+
+/* Design 0M — reduced motion is a requirement of shipping a pattern, not a
+   courtesy. iteration-count is the load-bearing line: it stops the infinite
+   shimmer and think loops dead; durations collapse every travel to nothing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

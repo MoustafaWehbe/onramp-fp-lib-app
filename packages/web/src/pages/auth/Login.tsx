@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -62,12 +62,12 @@ export function Login() {
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <Label htmlFor="password">Password</Label>
-          <span
-            className="text-xs text-muted-foreground"
-            title="Password reset isn't wired up yet"
+          <Link
+            to="/forgot-password"
+            className="text-xs text-muted-foreground hover:text-foreground"
           >
             Forgot?
-          </span>
+          </Link>
         </div>
         <Input
           id="password"

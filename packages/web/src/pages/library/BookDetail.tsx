@@ -3,22 +3,51 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
+import { EmptyState } from "../../components/folio/EmptyState";
+import { ShareBookDialog } from "../../components/folio/ShareBookDialog";
+import { SimilarBooks } from "../../components/folio/SimilarBooks";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
-import { READING_STATUSES, STATUS_LABEL, type ReadingStatus } from "../../lib/types";
+import {
+  READING_STATUSES,
+  STATUS_LABEL,
+  FORMAT_LABEL,
+  type ReadingStatus,
+} from "../../lib/types";
 import { cn } from "../../lib/utils";
 
 /** Design B7 — lifecycle control + the journal entry point. */
 export function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: book, isLoading } = useBook(id);
+  const { data: book, isLoading, isError, refetch } = useBook(id);
   const { data: journal } = useJournal(id);
   const { data: shelfInfo } = useBookShelves(id);
   const updateBook = useUpdateBook();
   const deleteBook = useDeleteBook();
   const [addingToShelf, setAddingToShelf] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const addToShelf = useAddBookToAnyShelf();
+
+  // A settled failure must not read as loading — the eternal-skeleton trap.
+  if (isError && !book) {
+    return (
+      <EmptyState
+        title="This book wouldn’t open."
+        line="It may have been removed, or the page couldn’t reach your library just now."
+        action={
+          <div className="flex gap-2.5">
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+            <Link to="/library" className={buttonVariants({ variant: "ghost" })}>
+              Back to your library
+            </Link>
+          </div>
+        }
+      />
+    );
+  }
 
   if (isLoading || !book) {
     return (
@@ -42,6 +71,7 @@ export function BookDetail() {
   ]
     .filter(Boolean)
     .join(" · ");
+  const formatLabel = FORMAT_LABEL[book.format] ?? FORMAT_LABEL.PHYSICAL;
 
   return (
     <div className="space-y-8">
@@ -60,13 +90,22 @@ export function BookDetail() {
             author={book.author}
             coverImage={book.coverImage}
           />
-          {/* Design B7: edit sits under the cover. */}
-          <Link
-            to={`/books/${book.id}/edit`}
-            className={cn(buttonVariants({ variant: "outline" }), "w-full")}
-          >
-            Edit details
-          </Link>
+          {/* Design B7a: edit and share sit side by side under the cover. */}
+          <div className="flex gap-2.5">
+            <Link
+              to={`/books/${book.id}/edit`}
+              className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
+            >
+              Edit details
+            </Link>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setSharing(true)}
+            >
+              Share book
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -74,7 +113,14 @@ export function BookDetail() {
             <h1 className="font-display text-[2rem] leading-tight text-foreground">
               {book.title}
             </h1>
-            <p className="text-sm text-muted-foreground">{meta}</p>
+            {/* Design B7a — the format label rides the metadata line. */}
+            <p className="text-sm text-muted-foreground">
+              {meta}
+              {meta && " · "}
+              <span className="rounded-full border border-border px-2.5 py-0.5 text-xs">
+                {formatLabel}
+              </span>
+            </p>
           </div>
 
           <section className="space-y-3">
@@ -195,6 +241,13 @@ export function BookDetail() {
           </div>
         </div>
       </div>
+
+      {/* Design B7a — full-width band under the detail grid. */}
+      <SimilarBooks bookId={book.id} />
+
+      {sharing && (
+        <ShareBookDialog book={book} onClose={() => setSharing(false)} />
+      )}
     </div>
   );
 }

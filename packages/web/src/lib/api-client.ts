@@ -1,5 +1,18 @@
 import axios, { type AxiosError } from "axios";
 
+/**
+ * The server's own words for a failure, when it gave any. error-handler.ts
+ * shapes every operational error as `{ error: message }` — surfaces should
+ * prefer that message to inventing a vaguer story, with their own fallback
+ * for failures that never reached the API.
+ */
+export function apiErrorMessage(err: unknown): string | null {
+  const data = (err as AxiosError<{ error?: unknown }>).response?.data;
+  return typeof data?.error === "string" && data.error.trim()
+    ? data.error
+    : null;
+}
+
 export const apiClient = axios.create({
   baseURL: "/api",
   withCredentials: true,
