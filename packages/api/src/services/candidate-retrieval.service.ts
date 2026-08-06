@@ -83,7 +83,9 @@ export async function retrieveCandidates(
     );
   }
   const profileEmbedding = JSON.parse(profile.embedding) as number[];
-  const topGenres = (profile.aggregated_data?.topGenres ?? []).map((g) => g.genre);
+  const topGenres = (profile.aggregated_data?.topGenres ?? []).map(
+    (g) => g.genre,
+  );
   const subjects = deriveSubjects(topGenres);
 
   // Fetch + dedup candidate works across subjects. A single failing subject is
@@ -182,7 +184,11 @@ function extractOpenLibraryId(key: string | undefined): string | null {
 function deriveSubjects(genres: string[]): string[] {
   const slugs = genres
     .map((g) =>
-      g.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+      g
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, ""),
     )
     .filter((s) => s.length > 0)
     .slice(0, MAX_SUBJECTS);
@@ -200,7 +206,11 @@ async function loadOwnedBooks(userId: string): Promise<OwnedBook[]> {
 // back to case-insensitive (title, author) — the project's confirmed rule.
 function isOwned(c: CandidateSource, owned: OwnedBook[]): boolean {
   return owned.some((b) => {
-    if (c.openLibraryId && b.openLibraryId && b.openLibraryId === c.openLibraryId) {
+    if (
+      c.openLibraryId &&
+      b.openLibraryId &&
+      b.openLibraryId === c.openLibraryId
+    ) {
       return true;
     }
     return (

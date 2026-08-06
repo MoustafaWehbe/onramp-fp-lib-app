@@ -8,7 +8,7 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "clean": "rm -rf dist",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint .",
     "db:generate": "node scripts/with-root-env.js prisma generate",
     "db:migrate": "node scripts/with-root-env.js prisma migrate dev",
     "db:deploy": "node scripts/with-root-env.js prisma migrate deploy",

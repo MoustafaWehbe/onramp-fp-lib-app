@@ -59,7 +59,12 @@ export const adminService = {
       changes.push(`emailVerified -> ${input.emailVerified}`);
     }
     if (changes.length > 0) {
-      await this.audit(actingAdminId, "user.update", target.email, changes.join(", "));
+      await this.audit(
+        actingAdminId,
+        "user.update",
+        target.email,
+        changes.join(", "),
+      );
     }
     return updated;
   },
@@ -146,7 +151,9 @@ export const adminService = {
         select: { createdAt: true },
       }),
       // Anonymized cohorts: accounts grouped by signup month with avg books.
-      prisma.$queryRaw<{ cohort: string; accounts: number; avg_books: number }[]>`
+      prisma.$queryRaw<
+        { cohort: string; accounts: number; avg_books: number }[]
+      >`
         SELECT to_char(date_trunc('month', u."created_at"), 'Mon YYYY') AS cohort,
                COUNT(DISTINCT u.id)::int                                AS accounts,
                ROUND(COUNT(b.id)::numeric / COUNT(DISTINCT u.id), 1)::float AS avg_books

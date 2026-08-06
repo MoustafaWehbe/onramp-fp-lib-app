@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useBook, useDeleteBook, useJournal, useUpdateBook } from "../../hooks/useBooks";
+import {
+  useBook,
+  useDeleteBook,
+  useJournal,
+  useUpdateBook,
+} from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
 import { EmptyState } from "../../components/folio/EmptyState";
@@ -40,7 +45,10 @@ export function BookDetail() {
             <Button variant="outline" onClick={() => refetch()}>
               Try again
             </Button>
-            <Link to="/library" className={buttonVariants({ variant: "ghost" })}>
+            <Link
+              to="/library"
+              className={buttonVariants({ variant: "ghost" })}
+            >
               Back to your library
             </Link>
           </div>

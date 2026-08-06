@@ -9,7 +9,14 @@ import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
 
 /** The design's cover palette, reused for the card spines and velocity bars. */
-const SPINES = ["#7A3B2E", "#5E4B3B", "#41553F", "#39424E", "#EFE6D4", "#6B4A55"];
+const SPINES = [
+  "#7A3B2E",
+  "#5E4B3B",
+  "#41553F",
+  "#39424E",
+  "#EFE6D4",
+  "#6B4A55",
+];
 
 function useYearInReading(year: number) {
   return useQuery({
@@ -228,8 +235,8 @@ export function YearInReading() {
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           A year in reading needs a year of reading. Folio will write this in
-          December, or whenever you&rsquo;ve finished around {data.needed}{" "}
-          books — whichever comes first. Nothing to switch on.
+          December, or whenever you&rsquo;ve finished around {data.needed} books
+          — whichever comes first. Nothing to switch on.
         </p>
         <div className="flex items-center gap-4 rounded-[var(--radius)] border border-dashed border-border bg-card p-5">
           <div className="flex gap-1.5" aria-hidden>
@@ -243,7 +250,10 @@ export function YearInReading() {
               ),
             )}
             {Array.from({
-              length: Math.max(0, Math.min(6, data.needed) - data.finishedCount),
+              length: Math.max(
+                0,
+                Math.min(6, data.needed) - data.finishedCount,
+              ),
             }).map((_, i) => (
               <div
                 key={i}
@@ -285,8 +295,8 @@ export function YearInReading() {
             {stats.year}, in reading
           </h1>
           <p className="max-w-xl text-sm leading-relaxed text-[#C9C1B2]">
-            Written from your own library and journal. Nobody else has seen
-            this page, and nothing here is published anywhere.
+            Written from your own library and journal. Nobody else has seen this
+            page, and nothing here is published anywhere.
           </p>
         </div>
         {/* 0M Tallying — the hero counts climb once on first reveal. */}
@@ -476,7 +486,9 @@ export function YearInReading() {
       <div className="space-y-4 px-4 pb-12 sm:px-8 lg:px-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="font-display text-xl text-foreground">Keep a card</h2>
+            <h2 className="font-display text-xl text-foreground">
+              Keep a card
+            </h2>
             <p className="text-sm text-muted-foreground">
               A single image of the year. Saved to your device — Folio
               doesn&rsquo;t post it anywhere.

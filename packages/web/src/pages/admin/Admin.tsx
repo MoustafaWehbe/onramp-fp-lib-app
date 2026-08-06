@@ -15,7 +15,13 @@ import { initialsOf } from "../../components/layout/UserMenu";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { cn } from "../../lib/utils";
 
-const TABS = ["Overview", "Usage", "Accounts", "AI spend", "Audit log"] as const;
+const TABS = [
+  "Overview",
+  "Usage",
+  "Accounts",
+  "AI spend",
+  "Audit log",
+] as const;
 type Tab = (typeof TABS)[number];
 
 /** Shimmer recolored for the console's dark surfaces. */
@@ -144,8 +150,8 @@ export function Admin() {
             </p>
             <p className="font-sans text-xs text-admin-dim">
               The console never pretends — nothing renders until a query
-              answers. The Accounts and Audit log tabs run on their own
-              queries and may still be live.
+              answers. The Accounts and Audit log tabs run on their own queries
+              and may still be live.
             </p>
             <RetryButton onClick={retryAll} />
           </div>
@@ -156,11 +162,19 @@ export function Admin() {
             ))}
           </div>
         ) : tab === "Overview" ? (
-          <Overview stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
+          <Overview
+            stats={stats}
+            stale={offline}
+            staleAt={statsQ.dataUpdatedAt}
+          />
         ) : tab === "Usage" ? (
           <Usage stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
         ) : (
-          <AiSpend stats={stats} stale={offline} staleAt={statsQ.dataUpdatedAt} />
+          <AiSpend
+            stats={stats}
+            stale={offline}
+            staleAt={statsQ.dataUpdatedAt}
+          />
         )}
       </main>
     </div>
@@ -409,8 +423,8 @@ function Accounts({
             NOT SAVED
           </span>
           <span className="font-sans text-xs text-admin-note">
-            The last account change didn&rsquo;t save — the row shows the
-            stored state. Try it again.
+            The last account change didn&rsquo;t save — the row shows the stored
+            state. Try it again.
           </span>
         </div>
       )}
@@ -465,10 +479,7 @@ function Accounts({
       </div>
 
       {arming && (
-        <ArmDeleteDialog
-          account={arming}
-          onClose={() => setArming(null)}
-        />
+        <ArmDeleteDialog account={arming} onClose={() => setArming(null)} />
       )}
     </div>
   );
@@ -1159,7 +1170,9 @@ function ReportsChart({ stats }: { stats: AdminStats }) {
       </div>
       <div className="flex justify-between text-[10.5px] text-admin-dim">
         <span>{days[0]?.day}</span>
-        <span>avg {(total / Math.max(1, days.length)).toFixed(1)} reports/day</span>
+        <span>
+          avg {(total / Math.max(1, days.length)).toFixed(1)} reports/day
+        </span>
         <span>{days.at(-1)?.day}</span>
       </div>
     </section>

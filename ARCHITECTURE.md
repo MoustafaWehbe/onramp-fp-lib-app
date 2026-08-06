@@ -108,7 +108,7 @@ erDiagram
   rotation never produces a duplicate hash.
 - **Reading lifecycle** — `Book.status` (enum `ReadingStatus`) has four states:
   `WANT_TO_READ` → `READING` → `FINISHED` → `ABANDONED`. This is the reading
-  *status* and is distinct from shelves.
+  _status_ and is distinct from shelves.
 - **Shelves** — a `Shelf` is a user-created named collection, many-to-many with
   `Book` (a book can sit on several shelves). Shelves **complement** the reading
   lifecycle rather than replace it. Cross-account **shared shelves** (joint
@@ -137,20 +137,20 @@ validation error `{ "error": "Validation failed", "errors": [{ "field", "message
 
 ### Auth — ✅ implemented
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| POST | `/api/auth/register` | public | `{ email, password, name }` | `201 { data: { id, email, name, role } }` |
-| POST | `/api/auth/login` | public | `{ email, password }` | `200 { data: { user } }` + auth cookies |
-| POST | `/api/auth/refresh` | refresh cookie | — | `200 { data: { message } }` + rotated cookies |
-| POST | `/api/auth/logout` | user | — | `200 { data: { message } }` |
-| GET | `/api/auth/me` | user | — | `200 { data: { id, email, name, role, emailVerified, createdAt } }` |
+| Method | Path                 | Auth           | Request body                | Response                                                            |
+| ------ | -------------------- | -------------- | --------------------------- | ------------------------------------------------------------------- |
+| POST   | `/api/auth/register` | public         | `{ email, password, name }` | `201 { data: { id, email, name, role } }`                           |
+| POST   | `/api/auth/login`    | public         | `{ email, password }`       | `200 { data: { user } }` + auth cookies                             |
+| POST   | `/api/auth/refresh`  | refresh cookie | —                           | `200 { data: { message } }` + rotated cookies                       |
+| POST   | `/api/auth/logout`   | user           | —                           | `200 { data: { message } }`                                         |
+| GET    | `/api/auth/me`       | user           | —                           | `200 { data: { id, email, name, role, emailVerified, createdAt } }` |
 
 ### Auth — password reset — ✅ implemented
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| POST | `/api/auth/forgot-password` | public | `{ email }` | `200` — identical body whether or not the address has an account |
-| POST | `/api/auth/reset-password` | public | `{ token, password }` | `200`; consumes the single-use token and revokes every session |
+| Method | Path                        | Auth   | Request body          | Response                                                         |
+| ------ | --------------------------- | ------ | --------------------- | ---------------------------------------------------------------- |
+| POST   | `/api/auth/forgot-password` | public | `{ email }`           | `200` — identical body whether or not the address has an account |
+| POST   | `/api/auth/reset-password`  | public | `{ token, password }` | `200`; consumes the single-use token and revokes every session   |
 
 Tokens are stored as sha256 hashes only, live one hour, and one live link exists
 per account. In development the reset link is printed to the API console behind a
@@ -158,43 +158,43 @@ banner (the email worker is a mock).
 
 ### Books — ✅ implemented (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/books` | user | — (query: `status?`, `genre?`, `author?`, `q?`, `sort?`) | `200 { data: Book[] }` |
-| POST | `/api/books` | user | `{ title, author, genre?, coverImage?, year?, pageCount?, format?, status?, openLibraryId? }` | `201 { data: Book }` |
-| GET | `/api/books/catalog-search` | user | — (query: `q`) | `200 { data: CatalogResult[] }` (Open Library proxy; 502 when the catalog is down — the form never blocks on it) |
-| POST | `/api/books/cover` | user | raw `application/octet-stream` image bytes | `201 { data: { url } }` (type sniffed from magic bytes, 5 MB cap) |
-| GET | `/api/books/:id` | owner | — | `200 { data: Book }` |
-| PATCH | `/api/books/:id` | owner | `{ title?, author?, genre?, coverImage?, year?, pageCount?, format?, status? }` | `200 { data: Book }` |
-| DELETE | `/api/books/:id` | owner | — | `204` |
-| GET | `/api/books/:id/similar` | owner | — | `200 { data: { status: "ok"\|"thin", items } }` — pgvector neighbours from the reader's own library only |
-| POST | `/api/books/:id/share` | owner | `{ email }` | `201` — share one book with one named, existing reader (design E18) |
-| GET | `/api/books/:id/shares` | owner | — | `200 { data: [{ shareId, recipient, sharedAt }] }` |
-| GET | `/api/books/:id/journal` | owner | — | `200 { data: JournalEntry \| null }` |
-| PUT | `/api/books/:id/journal` | owner | `{ reflectionText, favoriteQuotes?, rating? }` | `200 { data: JournalEntry }` (upsert; gated on FINISHED; every save re-queues the book's embedding) |
+| Method | Path                        | Auth  | Request body                                                                                  | Response                                                                                                         |
+| ------ | --------------------------- | ----- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/books`                | user  | — (query: `status?`, `genre?`, `author?`, `q?`, `sort?`)                                      | `200 { data: Book[] }`                                                                                           |
+| POST   | `/api/books`                | user  | `{ title, author, genre?, coverImage?, year?, pageCount?, format?, status?, openLibraryId? }` | `201 { data: Book }`                                                                                             |
+| GET    | `/api/books/catalog-search` | user  | — (query: `q`)                                                                                | `200 { data: CatalogResult[] }` (Open Library proxy; 502 when the catalog is down — the form never blocks on it) |
+| POST   | `/api/books/cover`          | user  | raw `application/octet-stream` image bytes                                                    | `201 { data: { url } }` (type sniffed from magic bytes, 5 MB cap)                                                |
+| GET    | `/api/books/:id`            | owner | —                                                                                             | `200 { data: Book }`                                                                                             |
+| PATCH  | `/api/books/:id`            | owner | `{ title?, author?, genre?, coverImage?, year?, pageCount?, format?, status? }`               | `200 { data: Book }`                                                                                             |
+| DELETE | `/api/books/:id`            | owner | —                                                                                             | `204`                                                                                                            |
+| GET    | `/api/books/:id/similar`    | owner | —                                                                                             | `200 { data: { status: "ok"\|"thin", items } }` — pgvector neighbours from the reader's own library only         |
+| POST   | `/api/books/:id/share`      | owner | `{ email }`                                                                                   | `201` — share one book with one named, existing reader (design E18)                                              |
+| GET    | `/api/books/:id/shares`     | owner | —                                                                                             | `200 { data: [{ shareId, recipient, sharedAt }] }`                                                               |
+| GET    | `/api/books/:id/journal`    | owner | —                                                                                             | `200 { data: JournalEntry \| null }`                                                                             |
+| PUT    | `/api/books/:id/journal`    | owner | `{ reflectionText, favoriteQuotes?, rating? }`                                                | `200 { data: JournalEntry }` (upsert; gated on FINISHED; every save re-queues the book's embedding)              |
 
 `format` is `PHYSICAL | EBOOK | AUDIOBOOK` — a label for the reader's own
 filtering. Folio never stores or opens book files.
 
 ### Book shares — ✅ implemented (design E18)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/book-shares/sent` | user | — | `200 { data: SentShare[] }` |
-| GET | `/api/book-shares/received` | user | — | `200 { data: ReceivedShare[] }` — catalogue metadata + sender name, nothing else (see §4) |
-| DELETE | `/api/book-shares/:shareId` | sender | — | `204` ("Take it back") |
+| Method | Path                        | Auth   | Request body | Response                                                                                  |
+| ------ | --------------------------- | ------ | ------------ | ----------------------------------------------------------------------------------------- |
+| GET    | `/api/book-shares/sent`     | user   | —            | `200 { data: SentShare[] }`                                                               |
+| GET    | `/api/book-shares/received` | user   | —            | `200 { data: ReceivedShare[] }` — catalogue metadata + sender name, nothing else (see §4) |
+| DELETE | `/api/book-shares/:shareId` | sender | —            | `204` ("Take it back")                                                                    |
 
 ### Shelves — ✅ implemented (Owner-scoped; user-created collections)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/shelves` | user | — | `200 { data: Shelf[] }` |
-| POST | `/api/shelves` | user | `{ name }` | `201 { data: Shelf }` |
-| GET | `/api/shelves/:id` | owner | — | `200 { data: Shelf & { books: Book[] } }` |
-| PATCH | `/api/shelves/:id` | owner | `{ name }` | `200 { data: Shelf }` |
-| DELETE | `/api/shelves/:id` | owner | — | `204` |
-| POST | `/api/shelves/:id/books` | owner | `{ bookId }` | `200 { data: Shelf }` (add book to shelf) |
-| DELETE | `/api/shelves/:id/books/:bookId` | owner | — | `204` (remove book from shelf) |
+| Method | Path                             | Auth  | Request body | Response                                  |
+| ------ | -------------------------------- | ----- | ------------ | ----------------------------------------- |
+| GET    | `/api/shelves`                   | user  | —            | `200 { data: Shelf[] }`                   |
+| POST   | `/api/shelves`                   | user  | `{ name }`   | `201 { data: Shelf }`                     |
+| GET    | `/api/shelves/:id`               | owner | —            | `200 { data: Shelf & { books: Book[] } }` |
+| PATCH  | `/api/shelves/:id`               | owner | `{ name }`   | `200 { data: Shelf }`                     |
+| DELETE | `/api/shelves/:id`               | owner | —            | `204`                                     |
+| POST   | `/api/shelves/:id/books`         | owner | `{ bookId }` | `200 { data: Shelf }` (add book to shelf) |
+| DELETE | `/api/shelves/:id/books/:bookId` | owner | —            | `204` (remove book from shelf)            |
 
 Lifecycle filtering (want-to-read / reading / finished / abandoned) is
 `GET /api/books?status=…`, not a shelf.
@@ -206,17 +206,17 @@ status `PENDING | ACCEPTED | DECLINED`). Access is scoped to the shelf and its
 books' catalogue metadata only — never the owner's journals, ratings, or
 metrics (enforced in the contributors service, pinned by `contributors.test.ts`).
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/shelves/:shelfId/shares` | owner | — | `200 { data: ShelfShare[] }` |
-| POST | `/api/shelves/:shelfId/shares` | owner | `{ email, accessLevel }` | `201 { data: ShelfShare }` (invite) |
-| DELETE | `/api/shelves/:shelfId/shares/:userId` | owner | — | `204` (revoke) |
+| Method | Path                                   | Auth  | Request body             | Response                            |
+| ------ | -------------------------------------- | ----- | ------------------------ | ----------------------------------- |
+| GET    | `/api/shelves/:shelfId/shares`         | owner | —                        | `200 { data: ShelfShare[] }`        |
+| POST   | `/api/shelves/:shelfId/shares`         | owner | `{ email, accessLevel }` | `201 { data: ShelfShare }` (invite) |
+| DELETE | `/api/shelves/:shelfId/shares/:userId` | owner | —                        | `204` (revoke)                      |
 
 ### Analytics — ✅ implemented (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/analytics/summary` | user | — | `200 { data: { totalFinished, averageRating, genreBreakdown, velocity } }` |
+| Method | Path                     | Auth | Request body | Response                                                                   |
+| ------ | ------------------------ | ---- | ------------ | -------------------------------------------------------------------------- |
+| GET    | `/api/analytics/summary` | user | —            | `200 { data: { totalFinished, averageRating, genreBreakdown, velocity } }` |
 
 The path is `/analytics/summary`, not `/analytics` — a contract test
 (`packages/api/tests/contract/web-routes.test.ts`) extracts every path the web
@@ -225,39 +225,39 @@ registered route table, so this class of drift can't ship silently again.
 
 ### AI — ✅ implemented (Owner-scoped)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| POST | `/api/ai/taste-profile/refresh` | user | — | `200 { data: { refreshedAt, aggregatedData } }` |
-| GET | `/api/ai/taste-profile` | user | — | `200 { data: TasteProfile }` |
-| POST | `/api/ai/discovery-report` | user | `{ moodModifier? }` | `201 { data: DiscoveryReport & { items } }` — 422 with an actionable message until a taste profile exists |
-| GET | `/api/ai/discovery-reports` | user | — | `200 { data: DiscoveryReport[] }` |
-| GET | `/api/ai/discovery-report/:id` | owner | — | `200 { data: DiscoveryReport & { items } }` |
-| POST | `/api/ai/journal-prompts/:bookId` | owner | — | `200 { data: { prompts } }` — three openers from book metadata alone; nothing persisted (design B8a) |
-| POST | `/api/ai/mood-shelf` | user | `{ mood, force? }` | `200 { data: { status: "ok"\|"thin", title?, items? } }` — built from the reader's own library; the mood is never stored (design D16) |
-| GET | `/api/ai/memory/overview` | user | — | `200 { data: { entryCount, wordCount } }` |
-| POST | `/api/ai/memory/search` | user | `{ query }` | `200 { data: { mode: "semantic"\|"exact", hits } }` — searches are not kept (design G19) |
-| GET | `/api/ai/year-in-reading` | user | — (query: `year?`) | `200 { data: { status: "ok"\|"tooEarly", stats, narrative } }` — counts always available; `narrative` is null when the model doesn't answer (design G20) |
+| Method | Path                              | Auth  | Request body        | Response                                                                                                                                                 |
+| ------ | --------------------------------- | ----- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/ai/taste-profile/refresh`   | user  | —                   | `200 { data: { refreshedAt, aggregatedData } }`                                                                                                          |
+| GET    | `/api/ai/taste-profile`           | user  | —                   | `200 { data: TasteProfile }`                                                                                                                             |
+| POST   | `/api/ai/discovery-report`        | user  | `{ moodModifier? }` | `201 { data: DiscoveryReport & { items } }` — 422 with an actionable message until a taste profile exists                                                |
+| GET    | `/api/ai/discovery-reports`       | user  | —                   | `200 { data: DiscoveryReport[] }`                                                                                                                        |
+| GET    | `/api/ai/discovery-report/:id`    | owner | —                   | `200 { data: DiscoveryReport & { items } }`                                                                                                              |
+| POST   | `/api/ai/journal-prompts/:bookId` | owner | —                   | `200 { data: { prompts } }` — three openers from book metadata alone; nothing persisted (design B8a)                                                     |
+| POST   | `/api/ai/mood-shelf`              | user  | `{ mood, force? }`  | `200 { data: { status: "ok"\|"thin", title?, items? } }` — built from the reader's own library; the mood is never stored (design D16)                    |
+| GET    | `/api/ai/memory/overview`         | user  | —                   | `200 { data: { entryCount, wordCount } }`                                                                                                                |
+| POST   | `/api/ai/memory/search`           | user  | `{ query }`         | `200 { data: { mode: "semantic"\|"exact", hits } }` — searches are not kept (design G19)                                                                 |
+| GET    | `/api/ai/year-in-reading`         | user  | — (query: `year?`)  | `200 { data: { status: "ok"\|"tooEarly", stats, narrative } }` — counts always available; `narrative` is null when the model doesn't answer (design G20) |
 
 ### Contributors — ✅ implemented
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/contributors` | user | — | outgoing: people the user shares shelves with |
-| GET | `/api/contributors/invites` | user | — | incoming invites awaiting an answer |
-| GET | `/api/contributors/shelves` | contributor | — | shelves shared with the user (metadata-only book projection) |
-| POST | `/api/contributors/shelves/:shelfId/books` | WRITE contributor | `{ bookId }` | add one of your own books to a shared shelf |
-| DELETE | `/api/contributors/shelves/:shelfId/books/:bookId` | WRITE contributor | — | remove a book you added |
-| POST | `/api/shelves/:shelfId/shares/accept` · `/decline` | invitee | — | answer an invite |
+| Method | Path                                               | Auth              | Request body | Response                                                     |
+| ------ | -------------------------------------------------- | ----------------- | ------------ | ------------------------------------------------------------ |
+| GET    | `/api/contributors`                                | user              | —            | outgoing: people the user shares shelves with                |
+| GET    | `/api/contributors/invites`                        | user              | —            | incoming invites awaiting an answer                          |
+| GET    | `/api/contributors/shelves`                        | contributor       | —            | shelves shared with the user (metadata-only book projection) |
+| POST   | `/api/contributors/shelves/:shelfId/books`         | WRITE contributor | `{ bookId }` | add one of your own books to a shared shelf                  |
+| DELETE | `/api/contributors/shelves/:shelfId/books/:bookId` | WRITE contributor | —            | remove a book you added                                      |
+| POST   | `/api/shelves/:shelfId/shares/accept` · `/decline` | invitee           | —            | answer an invite                                             |
 
 ### Admin — ✅ implemented (Admin-only, `role = admin`)
 
-| Method | Path | Auth | Request body | Response |
-| --- | --- | --- | --- | --- |
-| GET | `/api/admin/users` | admin | — | `200 { data: User[] }` (with book counts) |
-| PATCH | `/api/admin/users/:id` | admin | `{ role?, emailVerified? }` | `200 { data: User }` |
-| DELETE | `/api/admin/users/:id` | admin | — | `204` — two-step typed confirmation in the console; logged before execution |
-| GET | `/api/admin/stats` | admin | — | `200 { data: { userCount, bookCount, reportCount, signups7d, activeUsers30d, reportsPerDay, cohorts } }` |
-| GET | `/api/admin/audit` | admin | — | `200 { data: AuditEntry[] }` — survives actor/target deletion (denormalized emails, no FKs) |
+| Method | Path                   | Auth  | Request body                | Response                                                                                                 |
+| ------ | ---------------------- | ----- | --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/admin/users`     | admin | —                           | `200 { data: User[] }` (with book counts)                                                                |
+| PATCH  | `/api/admin/users/:id` | admin | `{ role?, emailVerified? }` | `200 { data: User }`                                                                                     |
+| DELETE | `/api/admin/users/:id` | admin | —                           | `204` — two-step typed confirmation in the console; logged before execution                              |
+| GET    | `/api/admin/stats`     | admin | —                           | `200 { data: { userCount, bookCount, reportCount, signups7d, activeUsers30d, reportsPerDay, cohorts } }` |
+| GET    | `/api/admin/audit`     | admin | —                           | `200 { data: AuditEntry[] }` — survives actor/target deletion (denormalized emails, no FKs)              |
 
 ## 3. AI integration
 
@@ -314,7 +314,7 @@ registered route table, so this class of drift can't ship silently again.
   reading data are never transmitted to a third-party model or external API. This
   is a deliberate advantage of the self-hosted choice, not an incidental one.
 - **Third-party calls that do go out.** Only the Open Library Subjects API — a
-  free, unauthenticated, read-only lookup that receives *subject/genre keywords*,
+  free, unauthenticated, read-only lookup that receives _subject/genre keywords_,
   never the user's journal content. Requests carry a descriptive `User-Agent` per
   Open Library's guidance.
 - **Secrets & addresses.** No credentials are committed. The Ollama LAN address

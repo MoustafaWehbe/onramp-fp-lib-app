@@ -4,7 +4,8 @@ import { Shimmer } from "./Shimmer";
 import { cn } from "../../lib/utils";
 
 /** Dismissal is per book and remembered — client-side only, nothing is logged. */
-const dismissKey = (bookId: string) => `folio:journal-prompts:dismissed:${bookId}`;
+const dismissKey = (bookId: string) =>
+  `folio:journal-prompts:dismissed:${bookId}`;
 
 function ThinkDots({ className }: { className?: string }) {
   return (

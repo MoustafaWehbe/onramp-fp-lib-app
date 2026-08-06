@@ -29,9 +29,11 @@ async function resetDb() {
 
 beforeAll(async () => {
   await resetDb();
-  await request(app)
-    .post("/api/auth/register")
-    .send({ email: "books@example.com", password: "SecurePass1", name: "Books" });
+  await request(app).post("/api/auth/register").send({
+    email: "books@example.com",
+    password: "SecurePass1",
+    name: "Books",
+  });
   const login = await request(app)
     .post("/api/auth/login")
     .send({ email: "books@example.com", password: "SecurePass1" });
@@ -179,9 +181,11 @@ describe("Books CRUD (integration, real database)", () => {
   });
 
   it("does not expose another user's book (404)", async () => {
-    await request(app)
-      .post("/api/auth/register")
-      .send({ email: "other@example.com", password: "SecurePass1", name: "Other" });
+    await request(app).post("/api/auth/register").send({
+      email: "other@example.com",
+      password: "SecurePass1",
+      name: "Other",
+    });
     const login = await request(app)
       .post("/api/auth/login")
       .send({ email: "other@example.com", password: "SecurePass1" });

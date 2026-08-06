@@ -100,9 +100,9 @@ describe("Shelves CRUD (integration, real database)", () => {
       request(app).post(`/api/shelves/${shelfId}/books`),
     ).send({ bookId });
     expect(added.status).toBe(200);
-    expect(
-      added.body.data.books.map((b: { id: string }) => b.id),
-    ).toContain(bookId);
+    expect(added.body.data.books.map((b: { id: string }) => b.id)).toContain(
+      bookId,
+    );
 
     const removed = await authed(
       request(app).delete(`/api/shelves/${shelfId}/books/${bookId}`),

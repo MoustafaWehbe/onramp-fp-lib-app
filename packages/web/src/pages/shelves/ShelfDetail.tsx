@@ -63,7 +63,10 @@ export function ShelfDetail() {
             <Button variant="outline" onClick={() => refetch()}>
               Try again
             </Button>
-            <Link to="/shelves" className={buttonVariants({ variant: "ghost" })}>
+            <Link
+              to="/shelves"
+              className={buttonVariants({ variant: "ghost" })}
+            >
               Back to your shelves
             </Link>
           </div>
@@ -120,8 +123,7 @@ export function ShelfDetail() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {shelf.description ? `${shelf.description} · ` : ""}
-            {shelf.books.length}{" "}
-            {shelf.books.length === 1 ? "book" : "books"}
+            {shelf.books.length} {shelf.books.length === 1 ? "book" : "books"}
           </p>
         </div>
         <div className="flex gap-2">

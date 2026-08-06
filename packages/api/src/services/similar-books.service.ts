@@ -212,8 +212,15 @@ function excerpt(sourceText: string): string {
   return reflection.length > 220 ? `${reflection.slice(0, 220)}…` : reflection;
 }
 
-function fallbackWhy(targetGenre: string | null, matchGenre: string | null): string {
-  if (targetGenre && matchGenre && targetGenre.toLowerCase() === matchGenre.toLowerCase()) {
+function fallbackWhy(
+  targetGenre: string | null,
+  matchGenre: string | null,
+): string {
+  if (
+    targetGenre &&
+    matchGenre &&
+    targetGenre.toLowerCase() === matchGenre.toLowerCase()
+  ) {
     return `Close to this one in what you've written, and shelved under ${matchGenre} too.`;
   }
   return "Sits closest to this one in what you've read and written.";

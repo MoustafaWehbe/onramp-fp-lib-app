@@ -185,7 +185,11 @@ export function Memory() {
             Your reflections are untouched — the page just couldn&rsquo;t reach
             them. Try the same search again in a moment.
           </p>
-          <Button variant="outline" size="sm" onClick={() => void run(submitted)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void run(submitted)}
+          >
             Try again
           </Button>
         </div>
@@ -194,7 +198,9 @@ export function Memory() {
       {/* ── Idle: example chips + privacy line ────────────────────────── */}
       {!hasResult && !searching && !failed && (
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xs text-muted-foreground">Or start with one of these</p>
+          <p className="text-xs text-muted-foreground">
+            Or start with one of these
+          </p>
           {/* G19 mobile stacks the example chips full-width for the thumb. */}
           <div className="flex w-full max-w-2xl flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
             {EXAMPLES.map((ex) => (
@@ -324,11 +330,11 @@ export function Memory() {
               </p>
               <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
                 You&rsquo;ve written {result.entryCount}{" "}
-                {result.entryCount === 1 ? "entry" : "entries"} and none of
-                them go near &ldquo;{submitted}&rdquo;. Try a feeling rather
-                than a subject — &ldquo;restless&rdquo;, &ldquo;couldn&rsquo;t
-                put it down&rdquo; — or search a book you remember writing at
-                length about.
+                {result.entryCount === 1 ? "entry" : "entries"} and none of them
+                go near &ldquo;{submitted}&rdquo;. Try a feeling rather than a
+                subject — &ldquo;restless&rdquo;, &ldquo;couldn&rsquo;t put it
+                down&rdquo; — or search a book you remember writing at length
+                about.
               </p>
               <div className="flex gap-2 pt-1">
                 {NO_MATCH_IDEAS.map((idea) => (

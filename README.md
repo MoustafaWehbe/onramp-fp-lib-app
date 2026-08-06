@@ -40,14 +40,14 @@ full-stack TypeScript starter kit (the stack below is unchanged).
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, Vite, Tailwind CSS, shadcn/ui |
-| Backend | Express, Prisma, Zod |
-| Background Jobs | BullMQ, Redis |
-| Database | PostgreSQL 16 + pgvector |
-| Monorepo | Turborepo |
-| Language | TypeScript (everywhere) |
+| Layer           | Technology                              |
+| --------------- | --------------------------------------- |
+| Frontend        | React 18, Vite, Tailwind CSS, shadcn/ui |
+| Backend         | Express, Prisma, Zod                    |
+| Background Jobs | BullMQ, Redis                           |
+| Database        | PostgreSQL 16 + pgvector                |
+| Monorepo        | Turborepo                               |
+| Language        | TypeScript (everywhere)                 |
 
 ## Project Structure
 
@@ -118,12 +118,12 @@ cd packages/workers && npm run dev # Workers
 
 ## Available Scripts (root)
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start all packages in watch mode |
-| `npm run build` | Build all packages |
-| `npm run test` | Run all test suites |
-| `npm run lint` | Lint all packages |
+| Command         | Description                      |
+| --------------- | -------------------------------- |
+| `npm run dev`   | Start all packages in watch mode |
+| `npm run build` | Build all packages               |
+| `npm run test`  | Run all test suites              |
+| `npm run lint`  | Lint all packages                |
 
 ## Environment Variables
 
@@ -197,6 +197,7 @@ docker compose exec postgres psql -U postgres -c "CREATE DATABASE starter_kit_te
 ## Docker
 
 The `docker-compose.yml` starts:
+
 - **PostgreSQL 16 with pgvector** (`pgvector/pgvector:pg16`) on port `5432` —
   the plain `postgres:16` image can't satisfy `CREATE EXTENSION vector`
 - **Redis 7** on port `6379`

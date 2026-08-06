@@ -88,8 +88,20 @@ afterAll(async () => {
 describe("taste-profile refresh", () => {
   it("computes the rating-weighted average and persists the profile", async () => {
     const user = await seedUser();
-    await seedEmbeddedBook({ userId: user.id, author: "Author A", genre: "SF", rating: 5, value: 1 });
-    await seedEmbeddedBook({ userId: user.id, author: "Author B", genre: "Fantasy", rating: 1, value: 3 });
+    await seedEmbeddedBook({
+      userId: user.id,
+      author: "Author A",
+      genre: "SF",
+      rating: 5,
+      value: 1,
+    });
+    await seedEmbeddedBook({
+      userId: user.id,
+      author: "Author B",
+      genre: "Fantasy",
+      rating: 1,
+      value: 3,
+    });
 
     const summary = await tasteProfileService.refresh(user.id);
 
@@ -117,7 +129,13 @@ describe("taste-profile refresh", () => {
 
   it("treats an unrated finished book as a neutral weight", async () => {
     const user = await seedUser();
-    await seedEmbeddedBook({ userId: user.id, author: "A", genre: "SF", rating: null, value: 2 });
+    await seedEmbeddedBook({
+      userId: user.id,
+      author: "A",
+      genre: "SF",
+      rating: null,
+      value: 2,
+    });
 
     const summary = await tasteProfileService.refresh(user.id);
 
@@ -128,17 +146,31 @@ describe("taste-profile refresh", () => {
 
   it("re-refreshing updates the same profile row (no duplicate)", async () => {
     const user = await seedUser();
-    await seedEmbeddedBook({ userId: user.id, author: "A", genre: "SF", rating: 4, value: 1 });
+    await seedEmbeddedBook({
+      userId: user.id,
+      author: "A",
+      genre: "SF",
+      rating: 4,
+      value: 1,
+    });
 
     await tasteProfileService.refresh(user.id);
     await tasteProfileService.refresh(user.id);
 
-    expect(await prisma.tasteProfile.count({ where: { userId: user.id } })).toBe(1);
+    expect(
+      await prisma.tasteProfile.count({ where: { userId: user.id } }),
+    ).toBe(1);
   });
 
   it("POST /api/ai/taste-profile/refresh returns 200 with the summary", async () => {
     const user = await seedUser();
-    await seedEmbeddedBook({ userId: user.id, author: "A", genre: "SF", rating: 5, value: 1 });
+    await seedEmbeddedBook({
+      userId: user.id,
+      author: "A",
+      genre: "SF",
+      rating: 5,
+      value: 1,
+    });
 
     const res = await request(app)
       .post("/api/ai/taste-profile/refresh")

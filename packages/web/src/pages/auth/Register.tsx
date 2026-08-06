@@ -40,7 +40,9 @@ export function Register() {
       await login(data.email, data.password);
       navigate("/library");
     } catch {
-      setError("Couldn't create that account. The email may already be in use.");
+      setError(
+        "Couldn't create that account. The email may already be in use.",
+      );
     }
   };
 

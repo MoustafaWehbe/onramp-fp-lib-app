@@ -1,10 +1,7 @@
 /** Shared API types. These mirror the real responses in packages/api. */
 
 export type ReadingStatus =
-  | "WANT_TO_READ"
-  | "READING"
-  | "FINISHED"
-  | "ABANDONED";
+  "WANT_TO_READ" | "READING" | "FINISHED" | "ABANDONED";
 
 export const READING_STATUSES: ReadingStatus[] = [
   "WANT_TO_READ",

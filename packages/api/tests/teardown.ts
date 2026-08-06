@@ -20,9 +20,8 @@
 afterAll(async () => {
   // Lazy import: for an all-skipped test file this afterAll never runs, so the
   // shared queue/Redis singletons are never instantiated on its behalf.
-  const { emailQueue, embeddingsQueue, getRedisConnection } = await import(
-    "@starter-kit/shared"
-  );
+  const { emailQueue, embeddingsQueue, getRedisConnection } =
+    await import("@starter-kit/shared");
 
   // Attempt every close independently: if one queue close rejects, the other —
   // and the Redis quit — must still run, or we'd leak the very handles this

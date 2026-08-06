@@ -44,7 +44,11 @@ export const sharesController = {
     }
   },
 
-  async decline(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async decline(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const share = await sharesService.respond(
         req.user!.userId,

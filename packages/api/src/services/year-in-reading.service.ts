@@ -1,4 +1,8 @@
-import { getPrisma, chatCompletion, type ChatMessage } from "@starter-kit/shared";
+import {
+  getPrisma,
+  chatCompletion,
+  type ChatMessage,
+} from "@starter-kit/shared";
 import { stripToJson } from "../lib/llm-json";
 
 const prisma = getPrisma();
@@ -118,7 +122,8 @@ export async function yearInReading(
   });
 
   const now = new Date();
-  const decemberOfYear = now.getUTCFullYear() > year || now.getUTCMonth() === 11;
+  const decemberOfYear =
+    now.getUTCFullYear() > year || now.getUTCMonth() === 11;
   if (finished.length < MIN_FINISHED && !decemberOfYear) {
     return {
       status: "tooEarly",
@@ -177,10 +182,7 @@ async function buildStats(
       after: thisYearGenres.get(g) ?? 0,
     }))
     .filter((s) => s.before !== s.after)
-    .sort(
-      (a, b) =>
-        Math.abs(b.after - b.before) - Math.abs(a.after - a.before),
-    )
+    .sort((a, b) => Math.abs(b.after - b.before) - Math.abs(a.after - a.before))
     .slice(0, 4);
 
   const rated = finished
@@ -242,9 +244,7 @@ async function genreCounts(
     _count: { _all: true },
   });
   return new Map(
-    rows
-      .filter((r) => r.genre)
-      .map((r) => [r.genre as string, r._count._all]),
+    rows.filter((r) => r.genre).map((r) => [r.genre as string, r._count._all]),
   );
 }
 
@@ -272,7 +272,10 @@ async function buildNarrative(
     .join("\n");
 
   const excerpts = finished
-    .map((b) => ({ title: b.title, text: excerpt(b.journalEntry?.reflectionText) }))
+    .map((b) => ({
+      title: b.title,
+      text: excerpt(b.journalEntry?.reflectionText),
+    }))
     .filter((e) => e.text)
     .slice(0, 6)
     .map((e) => `- On ${e.title}: "${e.text}"`)

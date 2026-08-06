@@ -158,9 +158,7 @@ export async function buildMoodShelf(
   ).filter((b) => !embeddedIds.has(b.id));
   try {
     const vectors = await deps.embedMany(
-      rest.map((b) =>
-        [b.title, b.author, b.genre].filter(Boolean).join("\n"),
-      ),
+      rest.map((b) => [b.title, b.author, b.genre].filter(Boolean).join("\n")),
     );
     rest.forEach((b, i) => {
       candidates.push({

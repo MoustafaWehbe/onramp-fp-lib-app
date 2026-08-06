@@ -29,7 +29,9 @@ export async function processEmbeddingsJob(
       `embeddings job for '${entityType}:${entityId}' has no text to embed`,
     );
   }
-  console.info(`[embeddings] generating embedding for ${entityType}:${entityId}`);
+  console.info(
+    `[embeddings] generating embedding for ${entityType}:${entityId}`,
+  );
   const embedding = await generateEmbedding(text);
   return { dimensions: embedding.length };
 }

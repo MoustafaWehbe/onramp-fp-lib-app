@@ -11,6 +11,13 @@ describe("cn utility", () => {
   });
 
   it("handles conditional classes", () => {
-    expect(cn("base", false && "hidden", "extra")).toBe("base extra");
+    // Conditions come from variables, not literals: `false && "hidden"` is
+    // folded away before cn ever sees it, so the old version of this test only
+    // proved a falsy argument is dropped and never exercised the true branch.
+    const isHidden = [false, true][0];
+    const isBold = [false, true][1];
+
+    expect(cn("base", isHidden && "hidden", "extra")).toBe("base extra");
+    expect(cn("base", isBold && "font-bold")).toBe("base font-bold");
   });
 });

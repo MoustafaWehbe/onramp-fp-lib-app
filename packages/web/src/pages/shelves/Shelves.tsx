@@ -59,7 +59,9 @@ export function Shelves() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const shared = (shelves ?? []).filter((s) => (s._count?.shares ?? 0) > 0).length;
+  const shared = (shelves ?? []).filter(
+    (s) => (s._count?.shares ?? 0) > 0,
+  ).length;
 
   const candidates = (library ?? []).filter(
     (b) =>
@@ -112,8 +114,7 @@ export function Shelves() {
             Shelves
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {shelves?.length ?? 0}{" "}
-            {shelves?.length === 1 ? "shelf" : "shelves"}
+            {shelves?.length ?? 0} {shelves?.length === 1 ? "shelf" : "shelves"}
             {shared > 0 ? ` · ${shared} shared` : ""}
           </p>
         </div>
@@ -206,7 +207,9 @@ export function Shelves() {
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             type="submit"
-            disabled={!name.trim() || createShelf.isPending || addBook.isPending}
+            disabled={
+              !name.trim() || createShelf.isPending || addBook.isPending
+            }
           >
             {createShelf.isPending || addBook.isPending
               ? "Creating…"

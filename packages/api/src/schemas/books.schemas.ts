@@ -68,7 +68,10 @@ export const listBooksQuerySchema = z.object({
 
 export const journalEntrySchema = z.object({
   reflectionText: z.string().trim().min(1).max(10_000),
-  favoriteQuotes: z.array(z.string().trim().min(1).max(2000)).max(50).optional(),
+  favoriteQuotes: z
+    .array(z.string().trim().min(1).max(2000))
+    .max(50)
+    .optional(),
   rating: z.number().int().min(1).max(5).optional(),
 });
 

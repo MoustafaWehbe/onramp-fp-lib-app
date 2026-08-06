@@ -32,7 +32,11 @@ export async function embedBook(
 
   if (!book) return { bookId, dimensions: 0, skipped: "book not found" };
   if (book.status !== "FINISHED") {
-    return { bookId, dimensions: 0, skipped: `status is ${book.status}, not FINISHED` };
+    return {
+      bookId,
+      dimensions: 0,
+      skipped: `status is ${book.status}, not FINISHED`,
+    };
   }
   if (!book.journalEntry) {
     return { bookId, dimensions: 0, skipped: "no journal entry" };
@@ -67,7 +71,12 @@ function buildSourceText(input: {
   reflectionText: string;
   favoriteQuotes: string[];
 }): string {
-  return [input.genre, input.author, input.reflectionText, ...input.favoriteQuotes]
+  return [
+    input.genre,
+    input.author,
+    input.reflectionText,
+    ...input.favoriteQuotes,
+  ]
     .filter((p): p is string => typeof p === "string" && p.trim().length > 0)
     .join("\n");
 }

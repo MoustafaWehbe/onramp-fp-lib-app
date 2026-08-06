@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useBook, useBooks, useCreateBook, useUpdateBook } from "../../hooks/useBooks";
+import {
+  useBook,
+  useBooks,
+  useCreateBook,
+  useUpdateBook,
+} from "../../hooks/useBooks";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -299,8 +304,8 @@ export function AddBook() {
               ))}
             </div>
             <p className="text-[0.7rem] text-muted-foreground">
-              Just a label, for your own filtering. Folio doesn&rsquo;t store
-              or open book files.
+              Just a label, for your own filtering. Folio doesn&rsquo;t store or
+              open book files.
             </p>
           </div>
 

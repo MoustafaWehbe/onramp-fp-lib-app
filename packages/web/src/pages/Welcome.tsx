@@ -30,7 +30,9 @@ export function Welcome() {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex h-16 max-w-6xl items-center px-6">
-        <span className="font-display text-xl italic text-foreground">Folio</span>
+        <span className="font-display text-xl italic text-foreground">
+          Folio
+        </span>
         <div className="ml-auto flex items-center gap-3">
           <Link
             to="/login"
@@ -70,10 +72,7 @@ export function Welcome() {
             </div>
           </div>
 
-          <div
-            className="grid grid-cols-4 gap-3"
-            aria-hidden="true"
-          >
+          <div className="grid grid-cols-4 gap-3" aria-hidden="true">
             {SHELF.map((book, i) => (
               <BookCover
                 key={book.title}

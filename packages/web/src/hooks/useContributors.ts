@@ -139,7 +139,9 @@ export function useSharedShelfBooks(shelfId: string) {
 
   const remove = useMutation({
     mutationFn: async (bookId: string) => {
-      await apiClient.delete(`/contributors/shelves/${shelfId}/books/${bookId}`);
+      await apiClient.delete(
+        `/contributors/shelves/${shelfId}/books/${bookId}`,
+      );
     },
     onSuccess: invalidate,
   });

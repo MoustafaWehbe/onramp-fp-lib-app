@@ -5,8 +5,11 @@ export const updateUserSchema = z
     role: z.enum(["user", "admin"]).optional(),
     emailVerified: z.boolean().optional(),
   })
-  .refine((data) => data.role !== undefined || data.emailVerified !== undefined, {
-    message: "Provide role and/or emailVerified",
-  });
+  .refine(
+    (data) => data.role !== undefined || data.emailVerified !== undefined,
+    {
+      message: "Provide role and/or emailVerified",
+    },
+  );
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

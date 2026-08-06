@@ -162,7 +162,10 @@ export function useJournal(bookId: string | undefined) {
  * Design B8a — AI opening prompts for a blank reflection. POST because the
  * server generates on demand; nothing about the request is persisted there.
  */
-export function useJournalPrompts(bookId: string | undefined, enabled: boolean) {
+export function useJournalPrompts(
+  bookId: string | undefined,
+  enabled: boolean,
+) {
   return useQuery({
     queryKey: ["journal-prompts", bookId],
     queryFn: async () => {
