@@ -4,6 +4,7 @@ import type { BookFileKind } from "../../lib/types";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { PdfReader } from "../../components/folio/PdfReader";
+import { AudioPlayer } from "../../components/folio/AudioPlayer";
 import { buttonVariants } from "../../components/ui/button";
 
 /** With several files attached, the reading kinds outrank listening. */
@@ -97,10 +98,7 @@ export function Reader() {
         />
       )}
       {kind === "AUDIO" && (
-        <EmptyState
-          title="Listening is on its way."
-          line="The attached audio file is stored safely; the player isn't built yet."
-        />
+        <AudioPlayer bookId={book.id} initialPosition={initialPosition} />
       )}
     </div>
   );
