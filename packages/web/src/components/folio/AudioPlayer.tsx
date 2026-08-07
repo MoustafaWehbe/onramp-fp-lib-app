@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { bookFileUrl, useSaveProgress } from "../../hooks/useBooks";
-import { Button } from "../ui/button";
+import { BookCover } from "./BookCover";
 import { cn } from "../../lib/utils";
+import type { Book } from "../../lib/types";
+import type { ReaderStatus } from "../../pages/library/Reader";
 
 /** Position writes go out roughly this often while playing, and on pause. */
 const PERSIST_INTERVAL_MS = 10_000;
@@ -17,9 +19,6 @@ function fmt(seconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 
-import type { Book } from "../../lib/types";
-import type { ReaderStatus } from "../../pages/library/Reader";
-
 interface AudioPlayerProps {
   book: Book;
   /** Resume position: seconds stored as a string, or null. */
@@ -29,10 +28,11 @@ interface AudioPlayerProps {
 }
 
 /**
- * The listening surface. A native <audio> element against the Range endpoint
- * — the browser seeks with byte ranges, so nothing downloads in full before
- * playing. No library: play/pause, seek, speed, skip 30s is exactly what the
- * element already does.
+ * The listening surface: the book, then the transport. Cover, title and
+ * author in the reading register (Newsreader, quiet metadata), a real
+ * scrubber with elapsed and remaining time, skip 30s both ways, playback
+ * speed. The element itself stays native — the browser seeks with byte
+ * ranges against the 206 endpoint, so nothing downloads in full.
  */
 export function AudioPlayer({
   book,
@@ -90,7 +90,38 @@ export function AudioPlayer({
     [],
   );
 
+  function seekBy(delta: number) {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = Math.max(
+      0,
+      Math.min(el.duration || Infinity, el.currentTime + delta),
+    );
+  }
+
+  // Space toggles play; arrows skip — the transport from the keyboard.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement;
+      if (t.tagName === "INPUT" || t.tagName === "TEXTAREA") return;
+      const el = audioRef.current;
+      if (!el) return;
+      if (e.key === " ") {
+        e.preventDefault();
+        if (el.paused) void el.play();
+        else el.pause();
+      } else if (e.key === "ArrowRight") seekBy(30);
+      else if (e.key === "ArrowLeft") seekBy(-30);
+      else if (e.key === "Home") el.currentTime = 0;
+      else if (e.key === "End" && Number.isFinite(el.duration))
+        el.currentTime = Math.max(0, el.duration - 5);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const el = audioRef.current;
+  const remaining = Math.max(0, duration - time);
 
   if (failed) {
     return (
@@ -107,7 +138,7 @@ export function AudioPlayer({
   }
 
   return (
-    <div className="space-y-5 rounded-[var(--radius)] border border-border bg-card p-5 sm:p-7">
+    <div className="flex h-full min-h-0 items-center justify-center overflow-auto bg-background px-4">
       <audio
         ref={audioRef}
         src={bookFileUrl(bookId, "AUDIO")}
@@ -136,86 +167,100 @@ export function AudioPlayer({
         }}
       />
 
-      {/* Scrubber — a native range input styled by the token set. */}
-      <div className="space-y-1.5">
-        <input
-          type="range"
-          min={0}
-          max={Math.max(1, duration)}
-          step={1}
-          value={Math.min(time, duration || 0)}
-          onChange={(e) => {
-            const at = Number(e.target.value);
-            if (el) el.currentTime = at;
-            setTime(at);
-          }}
-          aria-label="Seek"
-          className="w-full accent-primary"
-        />
-        <div className="flex justify-between font-mono text-xs text-muted-foreground">
-          <span>{fmt(time)}</span>
-          <span>{fmt(duration)}</span>
+      <div className="w-full max-w-md space-y-7 py-8">
+        {/* The book, in the reading register. */}
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="w-40 sm:w-48">
+            <BookCover
+              title={book.title}
+              author={book.author}
+              coverImage={book.coverImage}
+            />
+          </div>
+          <div className="space-y-1">
+            <h1 className="font-display text-2xl text-foreground">
+              {book.title}
+            </h1>
+            <p className="text-sm text-muted-foreground">{book.author}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (el) el.currentTime = Math.max(0, el.currentTime - 30);
-          }}
-          aria-label="Back 30 seconds"
-        >
-          ↺ 30
-        </Button>
-        <Button
-          size="lg"
-          onClick={() => {
-            if (!el) return;
-            if (el.paused) void el.play();
-            else el.pause();
-          }}
-          aria-label={playing ? "Pause" : "Play"}
-          className="min-w-[6rem]"
-        >
-          {playing ? "Pause" : "Play"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (el)
-              el.currentTime = Math.min(
-                el.duration || Infinity,
-                el.currentTime + 30,
-              );
-          }}
-          aria-label="Forward 30 seconds"
-        >
-          30 ↻
-        </Button>
-      </div>
-
-      <div className="flex items-center justify-center gap-1.5">
-        <span className="text-xs text-muted-foreground">Speed</span>
-        {SPEEDS.map((s) => (
-          <button
-            key={s}
-            onClick={() => {
-              setSpeed(s);
-              if (el) el.playbackRate = s;
+        {/* Scrubber: elapsed left, remaining right. */}
+        <div className="space-y-1.5">
+          <input
+            type="range"
+            min={0}
+            max={Math.max(1, duration)}
+            step={1}
+            value={Math.min(time, duration || 0)}
+            onChange={(e) => {
+              const at = Number(e.target.value);
+              if (el) el.currentTime = at;
+              setTime(at);
             }}
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-              speed === s
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
+            aria-label="Seek"
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-border accent-primary [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+            style={{
+              background: `linear-gradient(to right, hsl(var(--primary)) ${
+                duration > 0 ? (time / duration) * 100 : 0
+              }%, hsl(var(--border)) 0)`,
+            }}
+          />
+          <div className="flex justify-between font-mono text-xs text-muted-foreground">
+            <span>{fmt(time)}</span>
+            <span>−{fmt(remaining)}</span>
+          </div>
+        </div>
+
+        {/* Transport — 44px touch targets. */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          <button
+            onClick={() => seekBy(-30)}
+            aria-label="Back 30 seconds"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
           >
-            {s}×
+            ↺30
           </button>
-        ))}
+          <button
+            onClick={() => {
+              if (!el) return;
+              if (el.paused) void el.play();
+              else el.pause();
+            }}
+            aria-label={playing ? "Pause" : "Play"}
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl text-primary-foreground transition-colors hover:bg-accent-foreground"
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+          <button
+            onClick={() => seekBy(30)}
+            aria-label="Forward 30 seconds"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            30↻
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-1">
+          <span className="pr-1 text-xs text-muted-foreground">Speed</span>
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setSpeed(s);
+                if (el) el.playbackRate = s;
+              }}
+              className={cn(
+                "min-h-[44px] rounded-full px-2.5 text-xs font-medium transition-colors",
+                speed === s
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
