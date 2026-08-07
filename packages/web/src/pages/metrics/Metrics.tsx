@@ -128,7 +128,9 @@ export function Metrics() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* The canvas draws exactly three tiles, each with an editorial subline
+          — a sentence about the reader, not a metric label. */}
+      <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
           <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
             Books finished
@@ -136,9 +138,18 @@ export function Metrics() {
           <p className="mt-2 font-display text-4xl text-foreground">
             {data.totalFinished}
           </p>
-          {quietestMonth(data.velocity) && (
+          {(data.pagesFinished > 0 || quietestMonth(data.velocity)) && (
             <p className="mt-1 text-xs text-muted-foreground">
-              your quietest month was {quietestMonth(data.velocity)}
+              {[
+                data.pagesFinished > 0
+                  ? `${data.pagesFinished.toLocaleString()} pages`
+                  : null,
+                quietestMonth(data.velocity)
+                  ? `your quietest month was ${quietestMonth(data.velocity)}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
         </div>
@@ -158,6 +169,12 @@ export function Metrics() {
               </span>
             </p>
           )}
+          {data.topRatedGenre && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              You rate {data.topRatedGenre.genre.toLowerCase()} highest —{" "}
+              {data.topRatedGenre.average} on average
+            </p>
+          )}
         </div>
 
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
@@ -167,15 +184,16 @@ export function Metrics() {
           <p className="mt-2 font-display text-4xl text-foreground">
             {reading?.length ?? 0}
           </p>
-        </div>
-
-        <div className="rounded-[var(--radius)] border border-border bg-card p-5">
-          <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-            Genres read
-          </p>
-          <p className="mt-2 font-display text-4xl text-foreground">
-            {data.genreBreakdown.length}
-          </p>
+          {data.longestInProgress && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Longest in progress: {data.longestInProgress.title}
+              {data.longestInProgress.weeks >= 1
+                ? `, ${data.longestInProgress.weeks} ${
+                    data.longestInProgress.weeks === 1 ? "week" : "weeks"
+                  }`
+                : ""}
+            </p>
+          )}
         </div>
       </section>
 
@@ -214,7 +232,7 @@ export function Metrics() {
                         : "hsl(var(--border))",
                   }}
                 />
-                <span className="font-mono text-[0.65rem] text-muted-foreground">
+                <span className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
                   {monthLabel(v.month)}
                 </span>
               </div>

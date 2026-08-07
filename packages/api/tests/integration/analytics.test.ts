@@ -149,6 +149,14 @@ describe("Analytics summary (integration, real database)", () => {
     );
     expect(jan?.finished).toBe(1);
     expect(s.velocity.length).toBeGreaterThanOrEqual(2);
+
+    // C12 tile sublines. No seeded pageCounts → 0, never null.
+    expect(s.pagesFinished).toBe(0);
+    // Science Fiction has two rated books (5, 3 → 4.0); Fantasy has one and
+    // must not qualify — a single five-star can't crown a favourite.
+    expect(s.topRatedGenre).toEqual({ genre: "Science Fiction", average: 4 });
+    // Book D is the only READING book, added moments ago.
+    expect(s.longestInProgress).toEqual({ title: "D", weeks: 0 });
   });
 
   it("scopes to the requesting user only (empty for a fresh user)", async () => {
@@ -171,5 +179,8 @@ describe("Analytics summary (integration, real database)", () => {
     expect(res.body.data.averageRating).toBeNull();
     expect(res.body.data.genreBreakdown).toHaveLength(0);
     expect(res.body.data.velocity).toHaveLength(0);
+    expect(res.body.data.pagesFinished).toBe(0);
+    expect(res.body.data.topRatedGenre).toBeNull();
+    expect(res.body.data.longestInProgress).toBeNull();
   });
 });
