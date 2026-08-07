@@ -15,10 +15,14 @@ const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 /** Progress writes wait for the page to settle — never one write per tap. */
 const SAVE_DEBOUNCE_MS = 1_200;
 
+import type { ReaderStatus } from "../../pages/library/Reader";
+
 interface PdfReaderProps {
   bookId: string;
   /** Resume position: a page number stored as a string, or null. */
   initialPosition: string | null;
+  /** Reports position + percent up to the chrome bar. */
+  onStatus?: (s: ReaderStatus) => void;
 }
 
 /**
@@ -26,7 +30,11 @@ interface PdfReaderProps {
  * endpoint; rendering is one page at a time onto a canvas sized to fit the
  * container's width (the "zoom to fit" default — factors multiply it).
  */
-export function PdfReader({ bookId, initialPosition }: PdfReaderProps) {
+export function PdfReader({
+  bookId,
+  initialPosition,
+  onStatus,
+}: PdfReaderProps) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(() => {
     const n = Number(initialPosition);
@@ -157,6 +165,15 @@ export function PdfReader({ bookId, initialPosition }: PdfReaderProps) {
   );
 
   useEffect(() => () => window.clearTimeout(saveTimer.current), []);
+
+  // The chrome bar shows "N of M · pct%".
+  useEffect(() => {
+    if (!doc) return;
+    onStatus?.({
+      label: `${page} of ${doc.numPages}`,
+      percent: (page / doc.numPages) * 100,
+    });
+  }, [doc, page, onStatus]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

@@ -7,10 +7,14 @@ import { Button } from "../ui/button";
 /** Progress writes wait for the location to settle. */
 const SAVE_DEBOUNCE_MS = 1_200;
 
+import type { ReaderStatus } from "../../pages/library/Reader";
+
 interface EpubReaderProps {
   bookId: string;
   /** Resume position: an EPUB CFI stored as a string, or null. */
   initialPosition: string | null;
+  /** Reports position + percent up to the chrome bar. */
+  onStatus?: (s: ReaderStatus) => void;
 }
 
 /**
@@ -20,7 +24,13 @@ interface EpubReaderProps {
  * server to unzip per-resource, which ours deliberately doesn't. Position is
  * the CFI epub.js reports on every relocation.
  */
-export function EpubReader({ bookId, initialPosition }: EpubReaderProps) {
+export function EpubReader({
+  bookId,
+  initialPosition,
+  onStatus,
+}: EpubReaderProps) {
+  const onStatusRef = useRef(onStatus);
+  onStatusRef.current = onStatus;
   const hostRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const [ready, setReady] = useState(false);
@@ -71,6 +81,7 @@ export function EpubReader({ bookId, initialPosition }: EpubReaderProps) {
             ? Math.round(locations.percentageFromCfi(cfi) * 1000) / 10
             : 0;
           setPercentLabel(pct);
+          onStatusRef.current?.({ label: "Reading", percent: pct });
           window.clearTimeout(saveTimer.current);
           saveTimer.current = window.setTimeout(() => {
             saveRef.current.mutate({ position: cfi, percent: pct });

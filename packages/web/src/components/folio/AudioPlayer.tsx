@@ -17,10 +17,15 @@ function fmt(seconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 
+import type { Book } from "../../lib/types";
+import type { ReaderStatus } from "../../pages/library/Reader";
+
 interface AudioPlayerProps {
-  bookId: string;
+  book: Book;
   /** Resume position: seconds stored as a string, or null. */
   initialPosition: string | null;
+  /** Reports position + percent up to the chrome bar. */
+  onStatus?: (s: ReaderStatus) => void;
 }
 
 /**
@@ -29,7 +34,12 @@ interface AudioPlayerProps {
  * playing. No library: play/pause, seek, speed, skip 30s is exactly what the
  * element already does.
  */
-export function AudioPlayer({ bookId, initialPosition }: AudioPlayerProps) {
+export function AudioPlayer({
+  book,
+  initialPosition,
+  onStatus,
+}: AudioPlayerProps) {
+  const bookId = book.id;
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -111,6 +121,12 @@ export function AudioPlayer({ bookId, initialPosition }: AudioPlayerProps) {
           const a = e.currentTarget;
           positionRef.current = { time: a.currentTime, duration: a.duration };
           setTime(a.currentTime);
+          if (Number.isFinite(a.duration) && a.duration > 0) {
+            onStatus?.({
+              label: `${fmt(a.currentTime)} of ${fmt(a.duration)}`,
+              percent: (a.currentTime / a.duration) * 100,
+            });
+          }
         }}
         onDurationChange={(e) => setDuration(e.currentTarget.duration)}
         onError={() => setFailed(true)}

@@ -5,6 +5,7 @@ import { Shimmer } from "../components/folio/Shimmer";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { SharedLayout } from "../layouts/SharedLayout";
+import { ReaderLayout } from "../layouts/ReaderLayout";
 import { useAuth } from "../hooks/useAuth";
 import { Welcome } from "../pages/Welcome";
 import { Login } from "../pages/auth/Login";
@@ -83,14 +84,6 @@ export function AppRoutes() {
           <Route path="/books/:id/edit" element={<AddBook />} />
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/books/:id/journal" element={<Journal />} />
-          <Route
-            path="/books/:id/read"
-            element={
-              <Suspense fallback={<Shimmer className="h-[70vh] w-full" />}>
-                <Reader />
-              </Suspense>
-            }
-          />
           <Route path="/shelves" element={<Shelves />} />
           <Route path="/shelves/:id" element={<ShelfDetail />} />
           <Route path="/discover" element={<Discover />} />
@@ -99,6 +92,19 @@ export function AppRoutes() {
           <Route path="/memory/year" element={<YearInReading />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        {/* The reader escapes the app shell entirely (B8's rule: a book and
+            one quiet bar) — same route-level layout mechanism as /shared. */}
+        <Route element={<ReaderLayout />}>
+          <Route
+            path="/books/:id/read"
+            element={
+              <Suspense fallback={<Shimmer className="m-8 h-[70vh]" />}>
+                <Reader />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* Shared shelves get the reduced "contributor view" chrome — the
