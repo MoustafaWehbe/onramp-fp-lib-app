@@ -28,6 +28,7 @@ export interface CatalogSearchResult {
   title: string;
   author: string;
   year: number | null;
+  publisher: string | null;
   pageCount: number | null;
   coverUrl: string | null;
 }
@@ -39,6 +40,7 @@ interface SearchDoc {
   first_publish_year?: number;
   number_of_pages_median?: number;
   cover_i?: number;
+  publisher?: string[];
 }
 
 /**
@@ -52,7 +54,7 @@ export async function searchCatalog(
 ): Promise<CatalogSearchResult[]> {
   const url =
     `${OPEN_LIBRARY_BASE}/search.json?q=${encodeURIComponent(query)}` +
-    `&limit=${limit}&fields=key,title,author_name,first_publish_year,number_of_pages_median,cover_i`;
+    `&limit=${limit}&fields=key,title,author_name,first_publish_year,number_of_pages_median,cover_i,publisher`;
   let res: Response;
   try {
     res = await fetch(url, {
@@ -100,6 +102,10 @@ export async function searchCatalog(
       year: Number.isFinite(d.first_publish_year)
         ? (d.first_publish_year as number)
         : null,
+      publisher:
+        Array.isArray(d.publisher) && typeof d.publisher[0] === "string"
+          ? d.publisher[0]
+          : null,
       pageCount: Number.isFinite(d.number_of_pages_median)
         ? (d.number_of_pages_median as number)
         : null,

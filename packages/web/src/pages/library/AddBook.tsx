@@ -299,7 +299,17 @@ export function AddBook() {
                       : "border-border bg-card text-muted-foreground hover:border-primary/40",
                   )}
                 >
-                  {FORMAT_LABEL[f]}
+                  {/* B6a mobile shortens this one chip to "Audio". */}
+                  {f === "AUDIOBOOK" ? (
+                    <>
+                      <span className="sm:hidden">Audio</span>
+                      <span className="hidden sm:inline">
+                        {FORMAT_LABEL[f]}
+                      </span>
+                    </>
+                  ) : (
+                    FORMAT_LABEL[f]
+                  )}
                 </button>
               ))}
             </div>

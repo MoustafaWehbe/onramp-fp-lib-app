@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { BookCover } from "./BookCover";
 import { Shimmer } from "./Shimmer";
+import { cn } from "../../lib/utils";
 
 export interface CatalogResult {
   openLibraryId: string | null;
   title: string;
   author: string;
   year: number | null;
+  publisher: string | null;
   pageCount: number | null;
   coverUrl: string | null;
 }
@@ -66,13 +68,24 @@ export function CatalogSearch({ onPick, onManual }: CatalogSearchProps) {
 
   return (
     <div className="space-y-3">
+      {/* B6a unavailable — "Search collapses; the form never blocks on it":
+          the label states the outage and the row loses its primary border.
+          The input stays typeable, since retyping is the retry. */}
       <label
         htmlFor="catalog-q"
-        className="text-xs font-semibold text-foreground/80"
+        className={cn(
+          "text-xs font-semibold",
+          active && isError ? "text-destructive" : "text-foreground/80",
+        )}
       >
-        Find it in the catalog
+        {active && isError ? "Search unavailable" : "Find it in the catalog"}
       </label>
-      <div className="flex items-center gap-2.5 rounded-[var(--radius)] border-[1.5px] border-primary bg-card px-3.5 py-2.5">
+      <div
+        className={cn(
+          "flex items-center gap-2.5 rounded-[var(--radius)] border-[1.5px] bg-card px-3.5 py-2.5",
+          active && isError ? "border-border" : "border-primary",
+        )}
+      >
         <span className="text-muted-foreground" aria-hidden>
           ⌕
         </span>
@@ -161,6 +174,7 @@ export function CatalogSearch({ onPick, onManual }: CatalogSearchProps) {
                   {[
                     r.author,
                     r.year,
+                    r.publisher,
                     r.pageCount ? `${r.pageCount} pages` : null,
                   ]
                     .filter(Boolean)
