@@ -45,8 +45,9 @@ enum ReadingStatus {
   ABANDONED
 }
 
-/// Design B6a: "Just a label, for your own filtering. Folio doesn't store or
-/// open book files." — a field, never a reader or file manager.
+/// Design B6a: a filtering label, chosen by the reader — never inferred. The
+/// label and any attached file (BookFile) are deliberately decoupled: a
+/// physical book with a PDF scan is coherent.
 enum BookFormat {
   PHYSICAL
   EBOOK

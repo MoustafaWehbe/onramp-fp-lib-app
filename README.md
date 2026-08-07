@@ -12,7 +12,16 @@ full-stack TypeScript starter kit (the stack below is unchanged).
   on the catalog. Covers can be uploaded (JPG/PNG/WEBP, 5 MB) or Folio sets
   the title in type instead.
 - **Format** — each book carries a `Physical / Ebook / Audiobook` label for
-  your own filtering. It is only a label: Folio doesn't store or open files.
+  your own filtering. The label and the file are deliberately decoupled: any
+  book may also hold an attached file (one PDF, one EPUB, and one audio file
+  each), so a physical book can carry its scan.
+- **Attached files & reader** — attach a file from the book's page and it
+  opens in Folio: a PDF reader (pdf.js, lazy page fetches over HTTP Range),
+  an EPUB reader (epub.js, position stored as a CFI), and an audio player
+  (native, seeks without downloading in full). Reading position persists and
+  resumes per book. Files are validated by magic bytes, capped by
+  `BOOK_FILE_MAX_BYTES` (default 200 MB), and are private to their owner —
+  sharing a book or a shelf never shares its file.
 - **Journal** — rating and reflections unlock when a book is marked Finished,
   and are visible to exactly one person: you. AI prompts offer a few ways into
   a blank reflection; dismissing them is remembered per book.

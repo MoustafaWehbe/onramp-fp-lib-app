@@ -304,8 +304,9 @@ export function AddBook() {
               ))}
             </div>
             <p className="text-[0.7rem] text-muted-foreground">
-              Just a label, for your own filtering. Folio doesn&rsquo;t store or
-              open book files.
+              Just a label, for your own filtering. Once the book is in your
+              library you can also attach its file — a PDF scan, an EPUB, or
+              audio — from the book&rsquo;s page, whatever the label says.
             </p>
           </div>
 

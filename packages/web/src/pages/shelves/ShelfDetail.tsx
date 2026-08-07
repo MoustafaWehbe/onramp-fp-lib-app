@@ -338,7 +338,16 @@ export function ShelfDetail() {
                 {book.title}
               </p>
               <p className="text-xs text-muted-foreground">{book.author}</p>
-              <StatusBadge status={book.status} />
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={book.status} />
+                {(book.files?.length ?? 0) > 0 && (
+                  <span className="rounded-full border border-border px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                    {book.files!.some((f) => f.kind !== "AUDIO")
+                      ? "Read"
+                      : "Listen"}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => removeBook.mutate(book.id)}
                 className="block text-[0.7rem] text-muted-foreground underline underline-offset-4 hover:text-destructive"
