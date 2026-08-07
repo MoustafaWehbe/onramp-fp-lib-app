@@ -151,7 +151,9 @@ export function Journal() {
               ? "Saving…"
               : savedAt
                 ? `Saved ${savedAt} · visible only to you`
-                : "Visible only to you"}
+                : journal?.reflectionText
+                  ? "Visible only to you"
+                  : "Nothing written yet · visible only to you"}
           </span>
           <Button size="sm" onClick={() => navigate(`/books/${book.id}`)}>
             Done
@@ -160,6 +162,15 @@ export function Journal() {
       </header>
 
       <div className="space-y-1">
+        {book.status === "FINISHED" && (
+          <p className="text-xs text-muted-foreground">
+            Finished ·{" "}
+            {new Date(book.updatedAt).toLocaleDateString(undefined, {
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
         <h1 className="font-display text-[1.75rem] text-foreground">
           {book.title}
         </h1>
@@ -219,7 +230,7 @@ export function Journal() {
           ref={textareaRef}
           value={reflectionText}
           onChange={(e) => setReflectionText(e.target.value)}
-          placeholder="What did you think of it?"
+          placeholder="Write anything. No one is reading this but you."
           rows={14}
           className={cn(
             "w-full resize-none rounded-[var(--radius)] border border-border bg-card p-5 font-display text-[1.05rem] leading-relaxed text-foreground outline-none focus:border-primary/50",
