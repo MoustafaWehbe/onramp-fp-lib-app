@@ -278,7 +278,9 @@ export function Discover() {
           <section
             className={cn(
               "w-full max-w-xl space-y-4 rounded-t-[22px] bg-background p-6 shadow-2xl sm:rounded-xl sm:p-7",
-              moodClosing ? "animate-retire" : "animate-sheet sm:animate-arrive",
+              moodClosing
+                ? "animate-retire"
+                : "animate-sheet sm:animate-arrive",
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -287,8 +289,8 @@ export function Discover() {
                 What are you in the mood for?
               </h2>
               <p className="text-sm text-muted-foreground">
-                A one-time note laid over your standing taste profile. It
-                shapes this report only.
+                A one-time note laid over your standing taste profile. It shapes
+                this report only.
               </p>
             </div>
             <Input

@@ -30,20 +30,20 @@ export const analyticsService = {
       ratedEntries,
       oldestReading,
     ] = await Promise.all([
-        prisma.book.count({ where: { userId, status: "FINISHED" } }),
-        prisma.journalEntry.aggregate({
-          where: { userId, rating: { not: null } },
-          _avg: { rating: true },
-        }),
-        // Finished books only: the dashboard is "a year of reading", and the
-        // donut labels itself "share of finished books by genre". Counting
-        // want-to-read and in-progress books made the label lie.
-        prisma.book.groupBy({
-          by: ["genre"],
-          where: { userId, status: "FINISHED" },
-          _count: { _all: true },
-        }),
-        prisma.$queryRaw<{ month: Date; finished: number }[]>`
+      prisma.book.count({ where: { userId, status: "FINISHED" } }),
+      prisma.journalEntry.aggregate({
+        where: { userId, rating: { not: null } },
+        _avg: { rating: true },
+      }),
+      // Finished books only: the dashboard is "a year of reading", and the
+      // donut labels itself "share of finished books by genre". Counting
+      // want-to-read and in-progress books made the label lie.
+      prisma.book.groupBy({
+        by: ["genre"],
+        where: { userId, status: "FINISHED" },
+        _count: { _all: true },
+      }),
+      prisma.$queryRaw<{ month: Date; finished: number }[]>`
           SELECT date_trunc('month', "updated_at") AS month,
                  COUNT(*)::int AS finished
           FROM "books"
@@ -51,20 +51,20 @@ export const analyticsService = {
           GROUP BY 1
           ORDER BY 1 ASC
         `,
-        prisma.book.aggregate({
-          where: { userId, status: "FINISHED" },
-          _sum: { pageCount: true },
-        }),
-        prisma.journalEntry.findMany({
-          where: { userId, rating: { not: null } },
-          select: { rating: true, book: { select: { genre: true } } },
-        }),
-        prisma.book.findFirst({
-          where: { userId, status: "READING" },
-          orderBy: { createdAt: "asc" },
-          select: { title: true, createdAt: true },
-        }),
-      ]);
+      prisma.book.aggregate({
+        where: { userId, status: "FINISHED" },
+        _sum: { pageCount: true },
+      }),
+      prisma.journalEntry.findMany({
+        where: { userId, rating: { not: null } },
+        select: { rating: true, book: { select: { genre: true } } },
+      }),
+      prisma.book.findFirst({
+        where: { userId, status: "READING" },
+        orderBy: { createdAt: "asc" },
+        select: { title: true, createdAt: true },
+      }),
+    ]);
 
     const avg = ratingAgg._avg.rating;
 
