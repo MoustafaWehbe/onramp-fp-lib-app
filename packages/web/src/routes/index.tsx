@@ -1,5 +1,7 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { Shimmer } from "../components/folio/Shimmer";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { SharedLayout } from "../layouts/SharedLayout";
@@ -14,6 +16,10 @@ import { Library } from "../pages/library/Library";
 import { AddBook } from "../pages/library/AddBook";
 import { BookDetail } from "../pages/library/BookDetail";
 import { Journal } from "../pages/library/Journal";
+// Lazy: the reader carries pdf.js, which has no business in the main bundle.
+const Reader = lazy(() =>
+  import("../pages/library/Reader").then((m) => ({ default: m.Reader })),
+);
 import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
 import { Memory } from "../pages/memory/Memory";
@@ -77,6 +83,14 @@ export function AppRoutes() {
           <Route path="/books/:id/edit" element={<AddBook />} />
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/books/:id/journal" element={<Journal />} />
+          <Route
+            path="/books/:id/read"
+            element={
+              <Suspense fallback={<Shimmer className="h-[70vh] w-full" />}>
+                <Reader />
+              </Suspense>
+            }
+          />
           <Route path="/shelves" element={<Shelves />} />
           <Route path="/shelves/:id" element={<ShelfDetail />} />
           <Route path="/discover" element={<Discover />} />

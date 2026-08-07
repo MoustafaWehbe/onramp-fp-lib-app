@@ -36,6 +36,17 @@ export const FORMAT_LABEL: Record<BookFormat, string> = {
   AUDIOBOOK: "Audiobook",
 };
 
+export const BOOK_FILE_KINDS = ["PDF", "EPUB", "AUDIO"] as const;
+export type BookFileKind = (typeof BOOK_FILE_KINDS)[number];
+
+/** Owner-facing metadata for an attached file (never the storage path). */
+export interface BookFileMeta {
+  kind: BookFileKind;
+  sizeBytes: number;
+  mimeType: string;
+  originalName: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -48,6 +59,14 @@ export interface Book {
   status: ReadingStatus;
   openLibraryId: string | null;
   createdAt: string;
+  updatedAt: string;
+  /** Present on list and detail responses since the reader shipped. */
+  files?: BookFileMeta[];
+}
+
+export interface ReadingProgress {
+  position: string;
+  percent: number;
   updatedAt: string;
 }
 
