@@ -20,9 +20,12 @@ export const analyticsService = {
           where: { userId, rating: { not: null } },
           _avg: { rating: true },
         }),
+        // Finished books only: the dashboard is "a year of reading", and the
+        // donut labels itself "share of finished books by genre". Counting
+        // want-to-read and in-progress books made the label lie.
         prisma.book.groupBy({
           by: ["genre"],
-          where: { userId },
+          where: { userId, status: "FINISHED" },
           _count: { _all: true },
         }),
         prisma.$queryRaw<{ month: Date; finished: number }[]>`

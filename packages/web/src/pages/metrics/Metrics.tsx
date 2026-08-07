@@ -14,6 +14,22 @@ function monthLabel(iso: string) {
   return date.toLocaleString(undefined, { month: "short" });
 }
 
+/**
+ * The canvas draws twelve months, zero months included — a quiet March is
+ * information, and hiding it closes the gaps misleadingly. Same zero-fill
+ * pattern as G20's year chart, but over a rolling window ending this month
+ * (this page has no period selector yet).
+ */
+function lastTwelveMonths(velocity: { month: string; finished: number }[]) {
+  const byMonth = new Map(velocity.map((v) => [v.month, v.finished]));
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { month: key, finished: byMonth.get(key) ?? 0 };
+  });
+}
+
 /** The month with the fewest finishes — only meaningful with some history. */
 function quietestMonth(velocity: { month: string; finished: number }[]) {
   if (velocity.length < 2) return null;
@@ -62,7 +78,8 @@ export function Metrics() {
   }
 
   const totalGenre = data.genreBreakdown.reduce((sum, g) => sum + g.count, 0);
-  const peak = Math.max(1, ...data.velocity.map((v) => v.finished));
+  const months = lastTwelveMonths(data.velocity);
+  const peak = Math.max(1, ...months.map((v) => v.finished));
   const hasAnything = data.totalFinished > 0 || totalGenre > 0;
 
   if (!hasAnything) {
@@ -176,16 +193,26 @@ export function Metrics() {
             No finished books yet.
           </p>
         ) : (
-          <div className="flex h-40 items-end gap-2">
-            {data.velocity.map((v) => (
+          // Columns are h-full with justify-end (G20's pattern): a percentage
+          // bar height needs a definite parent height — against the previous
+          // auto-height columns every bar resolved to 0px.
+          <div className="flex h-40 gap-2">
+            {months.map((v) => (
               <div
                 key={v.month}
-                className="flex flex-1 flex-col items-center gap-2"
+                className="flex h-full flex-1 flex-col items-center justify-end gap-2"
                 title={`${v.finished} in ${v.month}`}
               >
                 <div
-                  className="w-full rounded-t-sm bg-primary/80 transition-all"
-                  style={{ height: `${(v.finished / peak) * 100}%` }}
+                  className="w-full rounded-t-sm"
+                  style={{
+                    height: `${(v.finished / peak) * 100}%`,
+                    minHeight: v.finished > 0 ? 4 : 2,
+                    backgroundColor:
+                      v.finished > 0
+                        ? "hsl(var(--primary) / 0.8)"
+                        : "hsl(var(--border))",
+                  }}
                 />
                 <span className="font-mono text-[0.65rem] text-muted-foreground">
                   {monthLabel(v.month)}

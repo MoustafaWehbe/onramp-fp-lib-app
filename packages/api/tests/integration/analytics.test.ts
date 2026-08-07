@@ -139,7 +139,10 @@ describe("Analytics summary (integration, real database)", () => {
       ]),
     );
     expect(byGenre["Science Fiction"]).toBe(2);
-    expect(byGenre["Fantasy"]).toBe(2);
+    // The seed includes a READING Fantasy book (D) precisely so this asserts
+    // the breakdown counts finished books only — Fantasy has 2 in the library
+    // but 1 finished.
+    expect(byGenre["Fantasy"]).toBe(1);
 
     const jan = s.velocity.find(
       (v: { month: string; finished: number }) => v.month === "2024-01",
