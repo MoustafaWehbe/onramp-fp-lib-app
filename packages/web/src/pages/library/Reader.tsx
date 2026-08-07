@@ -5,6 +5,7 @@ import { EmptyState } from "../../components/folio/EmptyState";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { PdfReader } from "../../components/folio/PdfReader";
 import { AudioPlayer } from "../../components/folio/AudioPlayer";
+import { EpubReader } from "../../components/folio/EpubReader";
 import { buttonVariants } from "../../components/ui/button";
 
 /** With several files attached, the reading kinds outrank listening. */
@@ -92,10 +93,7 @@ export function Reader() {
         <PdfReader bookId={book.id} initialPosition={initialPosition} />
       )}
       {kind === "EPUB" && (
-        <EmptyState
-          title="EPUB reading is on its way."
-          line="The attached EPUB is stored safely; the reader for it isn't built yet."
-        />
+        <EpubReader bookId={book.id} initialPosition={initialPosition} />
       )}
       {kind === "AUDIO" && (
         <AudioPlayer bookId={book.id} initialPosition={initialPosition} />
