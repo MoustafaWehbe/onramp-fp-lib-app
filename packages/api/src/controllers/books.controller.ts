@@ -37,7 +37,7 @@ export const booksController = {
 
   async get(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const book = await booksService.getOwned(
+      const book = await booksService.getOwnedWithFiles(
         req.user!.userId,
         req.params.id as string,
       );

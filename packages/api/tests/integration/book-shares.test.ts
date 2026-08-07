@@ -155,6 +155,19 @@ describe("GET /api/book-shares/received — the projection boundary", () => {
       .set("Cookie", mayaCookie);
     expect(journal.status).toBe(404);
   });
+
+  it("never exposes the owner's attached file or reading progress", async () => {
+    // The share is metadata-only; the new file surface answers exactly like
+    // the journal — not found, never "exists but forbidden".
+    const file = await request(app)
+      .get(`/api/books/${bookId}/file/pdf`)
+      .set("Cookie", mayaCookie);
+    expect(file.status).toBe(404);
+    const progress = await request(app)
+      .get(`/api/books/${bookId}/progress`)
+      .set("Cookie", mayaCookie);
+    expect(progress.status).toBe(404);
+  });
 });
 
 describe("DELETE /api/book-shares/:shareId — take it back", () => {

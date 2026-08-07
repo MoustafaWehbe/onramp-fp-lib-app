@@ -78,7 +78,29 @@ export const journalEntrySchema = z.object({
 /** For routes whose :id feeds a raw-SQL `::uuid` cast (see shares). */
 export const bookIdParamSchema = z.object({ id: z.string().uuid() });
 
+/**
+ * Params for /:id/file/:kind. validate() REPLACES req.params with the parsed
+ * object (zod strips unknown keys), so `kind` must be declared here or it
+ * never reaches the handler. Its value is checked by parseKind — an unknown
+ * kind is a 404, matching the not-found boundary.
+ */
+export const bookFileParamsSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.string().min(1),
+});
+
+/**
+ * Where the reader stopped. `position` is medium-specific (a CFI for EPUB, a
+ * page number for PDF, seconds for audio) so it stays an opaque string; the
+ * cap keeps a hostile client from storing essays in it.
+ */
+export const readingProgressSchema = z.object({
+  position: z.string().min(1).max(2048),
+  percent: z.number().min(0).max(100),
+});
+
 export type CreateBookInput = z.infer<typeof createBookSchema>;
 export type UpdateBookInput = z.infer<typeof updateBookSchema>;
 export type ListBooksQuery = z.infer<typeof listBooksQuerySchema>;
 export type JournalEntryInput = z.infer<typeof journalEntrySchema>;
+export type ReadingProgressInput = z.infer<typeof readingProgressSchema>;

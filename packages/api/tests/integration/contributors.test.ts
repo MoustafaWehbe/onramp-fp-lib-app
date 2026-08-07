@@ -349,4 +349,18 @@ describe("Shelf sharing + contributors (integration, real database)", () => {
       .send({ bookId: carolBook.body.data.id });
     expect(res.status).toBe(404); // ACCEPTED but VIEW-only, not WRITE
   });
+
+  it("a contributor cannot fetch a shared-shelf book's attached file or progress (404)", async () => {
+    // Bob holds ACCEPTED access to the shelf that carries Alice's book. The
+    // file surface follows the journal's boundary exactly: shelf access is
+    // catalogue access, and the bytes are the owner's alone.
+    const file = await request(app)
+      .get(`/api/books/${bookId}/file/pdf`)
+      .set("Cookie", bobCookie);
+    expect(file.status).toBe(404);
+    const progress = await request(app)
+      .get(`/api/books/${bookId}/progress`)
+      .set("Cookie", bobCookie);
+    expect(progress.status).toBe(404);
+  });
 });

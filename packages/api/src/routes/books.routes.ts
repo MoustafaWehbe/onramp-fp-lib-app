@@ -9,8 +9,11 @@ import {
   listBooksQuerySchema,
   journalEntrySchema,
   bookIdParamSchema,
+  bookFileParamsSchema,
+  readingProgressSchema,
 } from "../schemas/books.schemas";
 import { shareBookSchema } from "../schemas/shares.schemas";
+import { bookFilesController } from "../controllers/book-files.controller";
 
 // Owner-scoped: every route requires an authenticated user; the handlers enforce
 // that the book belongs to req.user.
@@ -50,6 +53,38 @@ router.put(
   "/:id/journal",
   validate(journalEntrySchema),
   booksController.putJournal,
+);
+
+// ── Attached files & reading progress ─────────────────────────────────────
+// The upload is a raw stream consumed directly by the handler — NO body
+// parser: a 200 MB file must never be buffered in memory. Its kind comes
+// from magic bytes; the size cap is BOOK_FILE_MAX_BYTES (default 200 MB).
+router.post(
+  "/:id/file",
+  validate(bookIdParamSchema, "params"),
+  bookFilesController.upload,
+);
+// Range-aware serving (206) so audio seeks and PDF.js fetches lazily.
+router.get(
+  "/:id/file/:kind",
+  validate(bookFileParamsSchema, "params"),
+  bookFilesController.serve,
+);
+router.delete(
+  "/:id/file/:kind",
+  validate(bookFileParamsSchema, "params"),
+  bookFilesController.remove,
+);
+router.get(
+  "/:id/progress",
+  validate(bookIdParamSchema, "params"),
+  bookFilesController.getProgress,
+);
+router.put(
+  "/:id/progress",
+  validate(bookIdParamSchema, "params"),
+  validate(readingProgressSchema),
+  bookFilesController.putProgress,
 );
 
 export { router as booksRouter };
