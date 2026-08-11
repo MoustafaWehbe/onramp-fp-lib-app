@@ -90,6 +90,13 @@ export function PdfReader({
 
   const saveProgress = useSaveProgress(bookId);
   const saveTimer = useRef<number | undefined>(undefined);
+  const saveRef = useRef(saveProgress);
+  saveRef.current = saveProgress;
+  // The debounced write that hasn't fired yet — flushed on unmount so
+  // closing the reader inside the debounce window doesn't lose the page.
+  const pendingSaveRef = useRef<{ position: string; percent: number } | null>(
+    null,
+  );
 
   function setPref<K extends "mode" | "zoom">(
     key: K,
@@ -140,16 +147,26 @@ export function PdfReader({
       percent: (page / doc.numPages) * 100,
     });
     window.clearTimeout(saveTimer.current);
+    const payload = {
+      position: String(page),
+      percent: Math.round((page / doc.numPages) * 1000) / 10,
+    };
+    pendingSaveRef.current = payload;
     saveTimer.current = window.setTimeout(() => {
-      saveProgress.mutate({
-        position: String(page),
-        percent: Math.round((page / doc.numPages) * 1000) / 10,
-      });
+      pendingSaveRef.current = null;
+      saveProgress.mutate(payload);
     }, SAVE_DEBOUNCE_MS);
     // saveProgress (a fresh mutation object per render) must not retrigger.
   }, [doc, page, onStatus]);
 
-  useEffect(() => () => window.clearTimeout(saveTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(saveTimer.current);
+      if (pendingSaveRef.current)
+        saveRef.current.mutate(pendingSaveRef.current);
+    },
+    [],
+  );
 
   const goTo = useCallback(
     (next: number) => {
@@ -293,6 +310,7 @@ export function PdfReader({
           zoom={zoom}
           page={page}
           onStep={step}
+          onRenderError={() => setFailed(true)}
         />
       )}
     </div>
@@ -391,7 +409,10 @@ function pageWidthFor(
   if (zoom === "fit-page") {
     w = Math.min(w, Math.max(120, (containerH - 32) / aspect));
   } else if (typeof zoom === "number") {
-    w = Math.min(available, perPageCap * zoom);
+    // Explicit zoom deliberately ignores the container width: zooming past
+    // the viewport is the point, and the surrounding overflow-auto scrolls.
+    // Clamping here made 200% a no-op on any screen narrower than the cap.
+    w = Math.max(120, perPageCap * zoom);
   }
   return Math.floor(w);
 }
@@ -404,12 +425,14 @@ function PagedView({
   zoom,
   page,
   onStep,
+  onRenderError,
 }: {
   doc: PDFDocumentProxy;
   mode: "single" | "spread";
   zoom: ZoomMode;
   page: number;
   onStep: (d: 1 | -1) => void;
+  onRenderError: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { w: cw, h: ch } = useElementSize(containerRef);
@@ -453,7 +476,13 @@ function PagedView({
         );
       }
     })().catch((err: Error) => {
-      if (!cancelled) console.error("[pdf] render failed:", err?.message);
+      // A silent failure here is a blank page forever — say so instead.
+      // (Scroll mode keeps per-slot retry semantics: a failed slot clears
+      // its rendered mark and repaints on the next intersection.)
+      if (!cancelled) {
+        console.error("[pdf] render failed:", err?.message);
+        onRenderError();
+      }
     });
 
     return () => {

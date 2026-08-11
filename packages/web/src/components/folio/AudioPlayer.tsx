@@ -97,6 +97,9 @@ export function AudioPlayer({
       0,
       Math.min(el.duration || Infinity, el.currentTime + delta),
     );
+    // Keep the persisted position in step with the seek — a pause right
+    // after skipping must save the new position, not the pre-seek one.
+    positionRef.current = { time: el.currentTime, duration: el.duration };
   }
 
   // Space toggles play; arrows skip — the transport from the keyboard.
@@ -120,7 +123,6 @@ export function AudioPlayer({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const el = audioRef.current;
   const remaining = Math.max(0, duration - time);
 
   if (failed) {
@@ -194,8 +196,14 @@ export function AudioPlayer({
             step={1}
             value={Math.min(time, duration || 0)}
             onChange={(e) => {
+              // The ref is read at event time — a render-time capture is
+              // null on the first paint and goes stale after remounts.
               const at = Number(e.target.value);
-              if (el) el.currentTime = at;
+              const audio = audioRef.current;
+              if (audio) {
+                audio.currentTime = at;
+                positionRef.current = { time: at, duration: audio.duration };
+              }
               setTime(at);
             }}
             aria-label="Seek"
@@ -223,9 +231,10 @@ export function AudioPlayer({
           </button>
           <button
             onClick={() => {
-              if (!el) return;
-              if (el.paused) void el.play();
-              else el.pause();
+              const audio = audioRef.current;
+              if (!audio) return;
+              if (audio.paused) void audio.play();
+              else audio.pause();
             }}
             aria-label={playing ? "Pause" : "Play"}
             className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl text-primary-foreground transition-colors hover:bg-accent-foreground"
@@ -248,7 +257,8 @@ export function AudioPlayer({
               key={s}
               onClick={() => {
                 setSpeed(s);
-                if (el) el.playbackRate = s;
+                const audio = audioRef.current;
+                if (audio) audio.playbackRate = s;
               }}
               className={cn(
                 "min-h-[44px] rounded-full px-2.5 text-xs font-medium transition-colors",

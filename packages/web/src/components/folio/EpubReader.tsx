@@ -20,6 +20,13 @@ const SAVE_DEBOUNCE_MS = 1_200;
  */
 const MIN_SECTION_CHARS = 200;
 
+/**
+ * The resume guard walks forward past negligible sections; this bounds the
+ * walk so a malformed book with hundreds of empty sections doesn't load its
+ * whole spine before the reader gives up and falls back to the saved CFI.
+ */
+const MAX_RESUME_SCAN = 10;
+
 /** A spine section, as much of it as the guards need. */
 interface SpineSection {
   index: number;
@@ -153,6 +160,11 @@ export function EpubReader({
   const onStatusRef = useRef(onStatus);
   onStatusRef.current = onStatus;
   const lastCfiRef = useRef<string | null>(initialPosition);
+  // The debounced write that hasn't fired yet — flushed on unmount so
+  // closing the reader inside the debounce window doesn't lose the place.
+  const pendingSaveRef = useRef<{ position: string; percent: number } | null>(
+    null,
+  );
 
   // ── Open the book ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -161,6 +173,7 @@ export function EpubReader({
     let cancelled = false;
     let book: EpubBook | null = null;
     let cleanupResize: (() => void) | null = null;
+    let cleanupVisibility: (() => void) | null = null;
 
     (async () => {
       const res = await fetch(bookFileUrl(bookId, "EPUB"));
@@ -257,8 +270,11 @@ export function EpubReader({
           if (liveText < MIN_SECTION_CHARS) return;
 
           window.clearTimeout(saveTimer.current);
+          const payload = { position: cfi, percent: pct };
+          pendingSaveRef.current = payload;
           saveTimer.current = window.setTimeout(() => {
-            saveRef.current.mutate({ position: cfi, percent: pct });
+            pendingSaveRef.current = null;
+            saveRef.current.mutate(payload);
           }, SAVE_DEBOUNCE_MS);
         },
       );
@@ -270,12 +286,21 @@ export function EpubReader({
         await new Promise<void>((visible) => {
           const onChange = () => {
             if (!document.hidden) {
-              document.removeEventListener("visibilitychange", onChange);
+              detachVisibility();
               visible();
             }
           };
+          const detachVisibility = () =>
+            document.removeEventListener("visibilitychange", onChange);
+          // Unmounting while hidden must detach the listener AND settle this
+          // promise — otherwise both outlive the reader until the next look.
+          cleanupVisibility = () => {
+            detachVisibility();
+            visible();
+          };
           document.addEventListener("visibilitychange", onChange);
         });
+        cleanupVisibility = null;
         if (cancelled) return;
       }
 
@@ -319,11 +344,12 @@ export function EpubReader({
             (await sectionTextLength(landing, book)) < MIN_SECTION_CHARS
           ) {
             target = undefined;
-            for (
-              let index = landing.index + 1;
-              index < spine.items.length;
-              index++
-            ) {
+            const scanEnd = Math.min(
+              spine.items.length,
+              landing.index + 1 + MAX_RESUME_SCAN,
+            );
+            for (let index = landing.index + 1; index < scanEnd; index++) {
+              if (cancelled) return;
               const candidate = spine.get(index);
               if (
                 candidate &&
@@ -401,7 +427,10 @@ export function EpubReader({
     return () => {
       cancelled = true;
       window.clearTimeout(saveTimer.current);
+      if (pendingSaveRef.current)
+        saveRef.current.mutate(pendingSaveRef.current);
       cleanupResize?.();
+      cleanupVisibility?.();
       renditionRef.current = null;
       book?.destroy();
     };

@@ -86,7 +86,12 @@ export function BookFileSection({ book }: { book: Book }) {
               <button
                 onClick={() => {
                   setError(null);
-                  removeFile.mutate(f.kind);
+                  removeFile.mutate(f.kind, {
+                    onError: () =>
+                      setError(
+                        "That file couldn't be removed. Try again in a moment.",
+                      ),
+                  });
                 }}
                 disabled={removeFile.isPending}
                 className="shrink-0 text-muted-foreground/70 underline hover:text-foreground"
