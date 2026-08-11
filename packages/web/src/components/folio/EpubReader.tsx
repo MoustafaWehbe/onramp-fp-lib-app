@@ -159,6 +159,24 @@ export function EpubReader({
         }
       });
 
+      // Touch paging: a tap on the outer thirds turns the page — the 375px
+      // affordance; the middle third stays free for links and selection.
+      // Listeners go straight onto each chapter document (epub.js's own
+      // click relay proved unreliable). Geometry note: the iframe spans the
+      // whole column strip and the container scrolls it, so clientX arrives
+      // in strip coordinates — subtract the scroll offset for the on-screen
+      // position.
+      rendition.hooks.content.register((contents: { document: Document }) => {
+        contents.document.addEventListener("click", (event: MouseEvent) => {
+          if ((event.target as HTMLElement).closest("a")) return;
+          const container = host.querySelector(".epub-container");
+          const onScreenX = event.clientX - (container?.scrollLeft ?? 0);
+          const w = host.clientWidth;
+          if (onScreenX < w / 3) void rendition.prev();
+          else if (onScreenX > (2 * w) / 3) void rendition.next();
+        });
+      });
+
       rendition.on(
         "relocated",
         (location: { start: { cfi: string; percentage?: number } }) => {
@@ -211,6 +229,11 @@ export function EpubReader({
       if (initialPosition) {
         await attempt(initialPosition);
         if (cancelled) return;
+        // Known upstream limit (epub.js 0.3.93): in an EPUB whose whole text
+        // is ONE spine item (some Gutenberg builds), a completed
+        // display-to-CFI leaves prev/next dead — the manager believes the
+        // section is exhausted and finds no next section. Standard
+        // multi-chapter EPUBs resume and page correctly (verified).
       }
 
       // 0.3.x quirk: percentage sizing columnizes the content but can leave
