@@ -11,6 +11,43 @@ import type { ReaderStatus } from "../../pages/library/Reader";
 const SAVE_DEBOUNCE_MS = 1_200;
 
 /**
+ * A section with less body text than this is furniture, not reading — a
+ * title wrapper, a blank spacer. A resume CFI pointing into one wedges
+ * epub.js 0.3.93's paginated manager (prev/next silently no-op), so such
+ * CFIs are neither saved nor resumed to. Detected by content, never by
+ * filename — Gutenberg calls its wrapper wrap0000.html, but that's their
+ * name for it, not a standard.
+ */
+const MIN_SECTION_CHARS = 200;
+
+/** A spine section, as much of it as the guards need. */
+interface SpineSection {
+  index: number;
+  href: string;
+  load: (loader: unknown) => Promise<{ textContent?: string | null }>;
+  unload?: () => void;
+}
+
+/** Body-text length of a spine section (loads it briefly, then unloads). */
+async function sectionTextLength(
+  section: SpineSection,
+  book: EpubBook,
+): Promise<number> {
+  try {
+    const doc = await section.load(
+      (book.load as (path: string) => Promise<unknown>).bind(book),
+    );
+    const length = (doc?.textContent ?? "").replace(/\s+/g, " ").trim().length;
+    section.unload?.();
+    return length;
+  } catch {
+    // Unresolvable content reads as "real" — the guards only act on
+    // positive evidence of a negligible section.
+    return Number.MAX_SAFE_INTEGER;
+  }
+}
+
+/**
  * The same families the app loads — nothing new enters the iframe. The
  * stylesheet href matches index.html so the fonts are already cached.
  */
@@ -203,6 +240,22 @@ export function EpubReader({
             ? Math.round(locations.percentageFromCfi(cfi) * 1000) / 10
             : 0;
           onStatusRef.current?.({ label: "Reading", percent: pct });
+
+          // Save-side guard: never persist a CFI whose rendered section is
+          // negligible furniture — resuming to one wedges the paginated
+          // manager (see the resume guard below). The section is on screen
+          // right now, so its live document is the cheapest evidence.
+          const contents = (
+            rendition as unknown as {
+              getContents: () => Array<{ document?: Document }>;
+            }
+          ).getContents();
+          const liveText =
+            contents?.[0]?.document?.body?.textContent
+              ?.replace(/\s+/g, " ")
+              .trim().length ?? Number.MAX_SAFE_INTEGER;
+          if (liveText < MIN_SECTION_CHARS) return;
+
           window.clearTimeout(saveTimer.current);
           saveTimer.current = window.setTimeout(() => {
             saveRef.current.mutate({ position: cfi, percent: pct });
@@ -244,19 +297,52 @@ export function EpubReader({
       if (cancelled) return;
       if (!opened) throw new Error("epub display never settled");
       if (initialPosition) {
-        await attempt(initialPosition);
+        // Resume-side guard. The reproduced trigger (upstream, epub.js
+        // 0.3.93): a resume CFI landing in a NEGLIGIBLE leading section —
+        // e.g. Gutenberg's 431-byte wrap0000.html — leaves the paginated
+        // manager's prev/next silently no-oping; the same file resumes fine
+        // to a real chapter. The save-side guard above stops new poison,
+        // but rows written before it exist in the database, so a resume
+        // that resolves into such a section redirects to the next section
+        // with real content instead — and the relocated event that display
+        // fires then overwrites the stored position through the normal save
+        // path, repairing the row on this open.
+        let target: string | undefined = initialPosition;
+        try {
+          const spine = book.spine as unknown as {
+            get: (t: string | number) => SpineSection | null;
+            items: { index: number }[];
+          };
+          const landing = spine.get(initialPosition);
+          if (
+            landing &&
+            (await sectionTextLength(landing, book)) < MIN_SECTION_CHARS
+          ) {
+            target = undefined;
+            for (
+              let index = landing.index + 1;
+              index < spine.items.length;
+              index++
+            ) {
+              const candidate = spine.get(index);
+              if (
+                candidate &&
+                (await sectionTextLength(candidate, book)) >= MIN_SECTION_CHARS
+              ) {
+                target = candidate.href;
+                break;
+              }
+            }
+          }
+        } catch {
+          // Resolution is best-effort; an odd CFI falls through unchanged
+          // and attempt() already degrades it to page one.
+        }
         if (cancelled) return;
-        // Why the flow branches on spine count (see renderTo above), and a
-        // corrected diagnosis: an earlier note here blamed "single spine
-        // item" books for dead paging after resume. That was wrong — the
-        // reproduced trigger is a resume CFI that lands on a DEGENERATE
-        // spine item (Gutenberg's 431-byte wrap0000.html): after that
-        // display-to-CFI, the paginated manager's prev/next silently no-op
-        // (epub.js 0.3.93; same file resumes fine to a real chapter). The
-        // wrapper CFI gets saved naturally on a book's very first open, so
-        // the wedge recurs on that build. Upstream, documented, not fixed
-        // here. Genuinely single-file EPUBs take the scrolled-doc branch
-        // where none of this machinery applies.
+        if (target) {
+          await attempt(target);
+          if (cancelled) return;
+        }
       }
 
       // In scrolled-doc flow, scrolling does NOT fire relocated on its own —
