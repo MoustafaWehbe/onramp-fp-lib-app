@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { BookCover } from "../../components/folio/BookCover";
 import { Shimmer } from "../../components/folio/Shimmer";
 import { Button, buttonVariants } from "../../components/ui/button";
+import { cn } from "../../lib/utils";
 
 /** The design's cover palette, reused for the card spines and velocity bars. */
 const SPINES = [
@@ -304,10 +305,18 @@ export function YearInReading() {
           {[
             { value: stats.finishedCount, label: "books finished" },
             { value: stats.pages, label: "pages" },
-            { value: stats.wordsWritten, label: "words you wrote about them" },
+            // The mobile frame drops this count — three fit, four crowd.
+            {
+              value: stats.wordsWritten,
+              label: "words you wrote about them",
+              desktopOnly: true,
+            },
             { value: stats.abandonedCount, label: "set down unfinished" },
-          ].map(({ value, label }) => (
-            <div key={label} className="space-y-1">
+          ].map(({ value, label, desktopOnly }) => (
+            <div
+              key={label}
+              className={cn("space-y-1", desktopOnly && "hidden sm:block")}
+            >
               <p className="font-display text-4xl">
                 <TallyNumber value={value} />
               </p>
@@ -518,17 +527,18 @@ export function YearInReading() {
                 />
               ))}
             </div>
-            {/* 0M Tallying — the card's counts share the one-shot climb. */}
+            {/* 0M — "the keepsake card renders complete and still" (G20's
+                MOTION annotation): no climb here, the hero already tallied. */}
             <div className="flex flex-wrap gap-x-8 gap-y-4 border-t border-[#3A342B] pt-5">
               <div>
                 <p className="font-display text-2xl">
-                  <TallyNumber value={stats.pages} />
+                  {stats.pages.toLocaleString()}
                 </p>
                 <p className="text-[0.65rem] text-[#A79E8F]">pages</p>
               </div>
               <div>
                 <p className="font-display text-2xl">
-                  <TallyNumber value={stats.wordsWritten} />
+                  {stats.wordsWritten.toLocaleString()}
                 </p>
                 <p className="text-[0.65rem] text-[#A79E8F]">words written</p>
               </div>

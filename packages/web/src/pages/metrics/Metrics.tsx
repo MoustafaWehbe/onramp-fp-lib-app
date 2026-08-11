@@ -14,6 +14,22 @@ function monthLabel(iso: string) {
   return date.toLocaleString(undefined, { month: "short" });
 }
 
+/**
+ * The canvas draws twelve months, zero months included — a quiet March is
+ * information, and hiding it closes the gaps misleadingly. Same zero-fill
+ * pattern as G20's year chart, but over a rolling window ending this month
+ * (this page has no period selector yet).
+ */
+function lastTwelveMonths(velocity: { month: string; finished: number }[]) {
+  const byMonth = new Map(velocity.map((v) => [v.month, v.finished]));
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { month: key, finished: byMonth.get(key) ?? 0 };
+  });
+}
+
 /** The month with the fewest finishes — only meaningful with some history. */
 function quietestMonth(velocity: { month: string; finished: number }[]) {
   if (velocity.length < 2) return null;
@@ -62,7 +78,8 @@ export function Metrics() {
   }
 
   const totalGenre = data.genreBreakdown.reduce((sum, g) => sum + g.count, 0);
-  const peak = Math.max(1, ...data.velocity.map((v) => v.finished));
+  const months = lastTwelveMonths(data.velocity);
+  const peak = Math.max(1, ...months.map((v) => v.finished));
   const hasAnything = data.totalFinished > 0 || totalGenre > 0;
 
   if (!hasAnything) {
@@ -111,7 +128,9 @@ export function Metrics() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* The canvas draws exactly three tiles, each with an editorial subline
+          — a sentence about the reader, not a metric label. */}
+      <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
           <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
             Books finished
@@ -119,9 +138,18 @@ export function Metrics() {
           <p className="mt-2 font-display text-4xl text-foreground">
             {data.totalFinished}
           </p>
-          {quietestMonth(data.velocity) && (
+          {(data.pagesFinished > 0 || quietestMonth(data.velocity)) && (
             <p className="mt-1 text-xs text-muted-foreground">
-              your quietest month was {quietestMonth(data.velocity)}
+              {[
+                data.pagesFinished > 0
+                  ? `${data.pagesFinished.toLocaleString()} pages`
+                  : null,
+                quietestMonth(data.velocity)
+                  ? `your quietest month was ${quietestMonth(data.velocity)}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
         </div>
@@ -141,6 +169,12 @@ export function Metrics() {
               </span>
             </p>
           )}
+          {data.topRatedGenre && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              You rate {data.topRatedGenre.genre.toLowerCase()} highest —{" "}
+              {data.topRatedGenre.average} on average
+            </p>
+          )}
         </div>
 
         <div className="rounded-[var(--radius)] border border-border bg-card p-5">
@@ -150,15 +184,16 @@ export function Metrics() {
           <p className="mt-2 font-display text-4xl text-foreground">
             {reading?.length ?? 0}
           </p>
-        </div>
-
-        <div className="rounded-[var(--radius)] border border-border bg-card p-5">
-          <p className="text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-            Genres read
-          </p>
-          <p className="mt-2 font-display text-4xl text-foreground">
-            {data.genreBreakdown.length}
-          </p>
+          {data.longestInProgress && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Longest in progress: {data.longestInProgress.title}
+              {data.longestInProgress.weeks >= 1
+                ? `, ${data.longestInProgress.weeks} ${
+                    data.longestInProgress.weeks === 1 ? "week" : "weeks"
+                  }`
+                : ""}
+            </p>
+          )}
         </div>
       </section>
 
@@ -176,18 +211,28 @@ export function Metrics() {
             No finished books yet.
           </p>
         ) : (
-          <div className="flex h-40 items-end gap-2">
-            {data.velocity.map((v) => (
+          // Columns are h-full with justify-end (G20's pattern): a percentage
+          // bar height needs a definite parent height — against the previous
+          // auto-height columns every bar resolved to 0px.
+          <div className="flex h-40 gap-2">
+            {months.map((v) => (
               <div
                 key={v.month}
-                className="flex flex-1 flex-col items-center gap-2"
+                className="flex h-full flex-1 flex-col items-center justify-end gap-2"
                 title={`${v.finished} in ${v.month}`}
               >
                 <div
-                  className="w-full rounded-t-sm bg-primary/80 transition-all"
-                  style={{ height: `${(v.finished / peak) * 100}%` }}
+                  className="w-full rounded-t-sm"
+                  style={{
+                    height: `${(v.finished / peak) * 100}%`,
+                    minHeight: v.finished > 0 ? 4 : 2,
+                    backgroundColor:
+                      v.finished > 0
+                        ? "hsl(var(--primary) / 0.8)"
+                        : "hsl(var(--border))",
+                  }}
                 />
-                <span className="font-mono text-[0.65rem] text-muted-foreground">
+                <span className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
                   {monthLabel(v.month)}
                 </span>
               </div>

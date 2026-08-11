@@ -30,6 +30,21 @@ export function Journal() {
   const [error, setError] = useState<string | null>(null);
   // What the server last saw — so autosave only fires on real changes.
   const lastSavedRef = useRef<string>("");
+  // 0M Acknowledging (B8a) — counts chip picks. The textarea is keyed on it,
+  // so each pick re-runs the 140ms opacity settle on the inserted text.
+  const [ackTick, setAckTick] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // After a pick, the caret lands at the end of the inserted prompt — the
+  // canvas keeps the cursor live throughout.
+  useEffect(() => {
+    if (ackTick === 0) return;
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }, [ackTick]);
 
   // Hydrate once the existing entry arrives.
   useEffect(() => {
@@ -136,7 +151,9 @@ export function Journal() {
               ? "Saving…"
               : savedAt
                 ? `Saved ${savedAt} · visible only to you`
-                : "Visible only to you"}
+                : journal?.reflectionText
+                  ? "Visible only to you"
+                  : "Nothing written yet · visible only to you"}
           </span>
           <Button size="sm" onClick={() => navigate(`/books/${book.id}`)}>
             Done
@@ -145,6 +162,15 @@ export function Journal() {
       </header>
 
       <div className="space-y-1">
+        {book.status === "FINISHED" && (
+          <p className="text-xs text-muted-foreground">
+            Finished ·{" "}
+            {new Date(book.updatedAt).toLocaleDateString(undefined, {
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
         <h1 className="font-display text-[1.75rem] text-foreground">
           {book.title}
         </h1>
@@ -189,21 +215,27 @@ export function Journal() {
           // the key, one book's dismissal would leak onto the next.
           key={book.id}
           bookId={book.id}
-          onPick={(prompt) =>
+          onPick={(prompt) => {
             setReflectionText((text) =>
               text.trim() ? `${text.trimEnd()}\n\n${prompt}\n` : `${prompt}\n`,
-            )
-          }
+            );
+            setAckTick((t) => t + 1);
+          }}
         />
       )}
 
       <section className="space-y-2">
         <textarea
+          key={ackTick}
+          ref={textareaRef}
           value={reflectionText}
           onChange={(e) => setReflectionText(e.target.value)}
-          placeholder="What did you think of it?"
+          placeholder="Write anything. No one is reading this but you."
           rows={14}
-          className="w-full resize-none rounded-[var(--radius)] border border-border bg-card p-5 font-display text-[1.05rem] leading-relaxed text-foreground outline-none focus:border-primary/50"
+          className={cn(
+            "w-full resize-none rounded-[var(--radius)] border border-border bg-card p-5 font-display text-[1.05rem] leading-relaxed text-foreground outline-none focus:border-primary/50",
+            ackTick > 0 && "animate-acknowledge",
+          )}
         />
         <div className="flex items-center justify-between text-[0.7rem] text-muted-foreground">
           <span>{words} words</span>

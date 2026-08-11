@@ -84,6 +84,9 @@ export interface AnalyticsSummary {
   averageRating: number | null;
   genreBreakdown: { genre: string; count: number }[];
   velocity: { month: string; finished: number }[];
+  pagesFinished: number;
+  topRatedGenre: { genre: string; average: number } | null;
+  longestInProgress: { title: string; weeks: number } | null;
 }
 
 export interface DiscoveryItem {

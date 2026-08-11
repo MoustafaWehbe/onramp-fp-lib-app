@@ -11,6 +11,7 @@ import { Shimmer } from "../../components/folio/Shimmer";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { cn } from "../../lib/utils";
 
 function updatedAgo(iso: string) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -58,6 +59,9 @@ export function Shelves() {
   const [bookQuery, setBookQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  // 0M Acknowledging (C10 "shelf saving") — the shelf just created fades in
+  // exactly where it belongs in the grid; every other card holds still.
+  const [justCreated, setJustCreated] = useState<string | null>(null);
 
   const shared = (shelves ?? []).filter(
     (s) => (s._count?.shares ?? 0) > 0,
@@ -95,6 +99,7 @@ export function Shelves() {
       setSelected(new Set());
       setBookQuery("");
       setOpen(false);
+      setJustCreated(shelf.id);
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response
         ?.status;
@@ -241,7 +246,10 @@ export function Shelves() {
             <Link
               key={shelf.id}
               to={`/shelves/${shelf.id}`}
-              className="flex justify-between gap-6 rounded-xl border border-border bg-card p-7 transition-shadow hover:shadow-[0_14px_28px_-12px_rgba(60,45,25,0.28)]"
+              className={cn(
+                "flex justify-between gap-6 rounded-xl border border-border bg-card p-7 transition-shadow hover:shadow-[0_14px_28px_-12px_rgba(60,45,25,0.28)]",
+                shelf.id === justCreated && "animate-acknowledge",
+              )}
             >
               <div className="flex flex-col justify-between gap-3">
                 <div className="space-y-1.5">

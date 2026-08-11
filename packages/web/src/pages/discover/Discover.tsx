@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useDiscoveryReports,
   useGenerateReport,
@@ -13,6 +13,7 @@ import { EmptyState } from "../../components/folio/EmptyState";
 import { Link } from "react-router-dom";
 import { buttonVariants } from "../../components/ui/button";
 import type { DiscoveryItem } from "../../lib/types";
+import { cn } from "../../lib/utils";
 
 const MOOD_EXAMPLES = [
   "something melancholic, under 300 pages",
@@ -38,6 +39,9 @@ export function Discover() {
 
   const refreshProfile = useRefreshTasteProfile();
   const [moodOpen, setMoodOpen] = useState(false);
+  // 0M Arriving needs a retire on the way out: `closing` swaps the entrance
+  // animations for the exit, then the overlay unmounts when it lands.
+  const [moodClosing, setMoodClosing] = useState(false);
   const [mood, setMood] = useState("");
   const [error, setError] = useState<string | null>(null);
   // True when the failure was specifically the missing taste profile — the
@@ -46,6 +50,44 @@ export function Discover() {
   const [lastMood, setLastMood] = useState<string | undefined>(undefined);
 
   const createBook = useCreateBook();
+
+  const moodPanelRef = useRef<HTMLElement>(null);
+  const moodTriggerRef = useRef<HTMLButtonElement>(null);
+
+  function closeMood() {
+    setMoodClosing(true);
+    window.setTimeout(() => {
+      setMoodOpen(false);
+      setMoodClosing(false);
+      // Keyboard users came in from this button; put them back on it.
+      moodTriggerRef.current?.focus();
+    }, 140);
+  }
+
+  // Escape dismisses and Tab stays inside the panel — same contract as the
+  // admin dialogs (ArmDeleteDialog): the page behind is inert in every sense.
+  function onMoodKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeMood();
+      return;
+    }
+    if (e.key === "Tab" && moodPanelRef.current) {
+      const focusables = moodPanelRef.current.querySelectorAll<HTMLElement>(
+        "input, button:not([disabled])",
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
   // Per-recommendation UI state, keyed by rank within the visible report.
   const [itemState, setItemState] = useState<
     Record<number, "added" | "inLibrary" | "dismissed">
@@ -60,7 +102,9 @@ export function Discover() {
   async function run(withMood?: string) {
     setError(null);
     setNeedsProfile(false);
-    setMoodOpen(false);
+    // The overlay leaves through its retire animation, same as Skip —
+    // snapping it away was the one exit that bypassed 0M.
+    if (moodOpen) closeMood();
     setLastMood(withMood?.trim() || undefined);
     try {
       await generate.mutateAsync(withMood?.trim() || undefined);
@@ -232,7 +276,11 @@ export function Discover() {
           >
             Mood shelf
           </Link>
-          <Button variant="outline" onClick={() => setMoodOpen((m) => !m)}>
+          <Button
+            ref={moodTriggerRef}
+            variant="outline"
+            onClick={() => setMoodOpen((m) => !m)}
+          >
             Add a mood
           </Button>
           <Button onClick={() => run(mood)} disabled={generate.isPending}>
@@ -250,51 +298,76 @@ export function Discover() {
       </p>
 
       {moodOpen && (
-        <section className="space-y-4 rounded-[var(--radius)] border border-border bg-card p-5">
-          <div>
-            <h2 className="font-display text-lg text-foreground">
-              What are you in the mood for?
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              A one-time note laid over your standing taste profile. It shapes
-              this report only.
+        // Design D14 — the mood modifier is an overlay laid over the page,
+        // not a section of it. 0M Arriving: scrim fades 140ms, the surface
+        // rises 8px over 220ms settle (bottom sheet below sm); exits retire.
+        <div
+          className={cn(
+            "fixed inset-0 z-50 flex items-end justify-center bg-foreground/45 sm:items-center sm:p-4",
+            moodClosing ? "animate-retire" : "animate-scrim",
+          )}
+          onClick={closeMood}
+          onKeyDown={onMoodKeyDown}
+          role="dialog"
+          aria-modal="true"
+          aria-label="What are you in the mood for?"
+        >
+          <section
+            ref={moodPanelRef}
+            className={cn(
+              "w-full max-w-xl space-y-4 rounded-t-[22px] bg-background p-6 shadow-2xl sm:rounded-xl sm:p-7",
+              moodClosing
+                ? "animate-retire"
+                : "animate-sheet sm:animate-arrive",
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h2 className="font-display text-lg text-foreground">
+                What are you in the mood for?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                A one-time note laid over your standing taste profile. It shapes
+                this report only.
+              </p>
+            </div>
+            <Input
+              value={mood}
+              onChange={(e) => setMood(e.target.value)}
+              placeholder="something melancholic, under 300 pages"
+              className="bg-card"
+              autoFocus
+            />
+            <div className="flex flex-wrap gap-2">
+              {MOOD_EXAMPLES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMood(m)}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Leave empty to use your taste profile alone.
             </p>
-          </div>
-          <Input
-            value={mood}
-            onChange={(e) => setMood(e.target.value)}
-            placeholder="something melancholic, under 300 pages"
-            className="bg-background"
-          />
-          <div className="flex flex-wrap gap-2">
-            {MOOD_EXAMPLES.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMood(m)}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            <div className="flex gap-2">
+              <Button onClick={() => run(mood)} disabled={generate.isPending}>
+                Generate report
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setMood("");
+                  closeMood();
+                }}
               >
-                {m}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Leave empty to use your taste profile alone.
-          </p>
-          <div className="flex gap-2">
-            <Button onClick={() => run(mood)} disabled={generate.isPending}>
-              Generate report
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setMood("");
-                setMoodOpen(false);
-              }}
-            >
-              Skip
-            </Button>
-          </div>
-        </section>
+                Skip
+              </Button>
+            </div>
+          </section>
+        </div>
       )}
 
       {generate.isPending && (

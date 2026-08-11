@@ -166,7 +166,8 @@ export function ShareBookDialog({ book, onClose }: ShareBookDialogProps) {
               </p>
             )}
             {sentTo && !share.isPending && (
-              <p className="text-sm text-lifecycle-finished">
+              // 0M Acknowledging — the confirmation fades in in place.
+              <p className="animate-acknowledge text-sm text-lifecycle-finished">
                 Sent. {sentTo} has it now — and nothing else.
               </p>
             )}

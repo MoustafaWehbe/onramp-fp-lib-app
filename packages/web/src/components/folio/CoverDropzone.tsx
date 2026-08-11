@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 import { BookCover } from "./BookCover";
 import { cn } from "../../lib/utils";
@@ -32,6 +32,60 @@ export function CoverDropzone({
 }: CoverDropzoneProps) {
   const [state, setState] = useState<UploadState>({ kind: "idle" });
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // An upload outliving the form would keep streaming to no listener.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Design B6a — "The whole panel is a drop target, not just the frame."
+  // The listeners live on the document and accept only real file drags, so
+  // dropping anywhere on the page (form fields included) attaches the cover.
+  // Depth-counted: drag events fire enter/leave for every child crossed.
+  useEffect(() => {
+    let depth = 0;
+    const hasFiles = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth += 1;
+      setState((s) => (s.kind === "idle" ? { kind: "dragging" } : s));
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0)
+        setState((s) => (s.kind === "dragging" ? { kind: "idle" } : s));
+    };
+    const over = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setState((s) => (s.kind === "dragging" ? { kind: "idle" } : s));
+      const file = e.dataTransfer?.files[0];
+      if (file) void upload(file);
+    };
+    // A cancelled drag (Escape, or dropping outside the window) can end
+    // without a balancing dragleave — dragend is the catch-all reset.
+    const end = () => {
+      depth = 0;
+      setState((s) => (s.kind === "dragging" ? { kind: "idle" } : s));
+    };
+    document.addEventListener("dragenter", enter);
+    document.addEventListener("dragleave", leave);
+    document.addEventListener("dragover", over);
+    document.addEventListener("drop", drop);
+    document.addEventListener("dragend", end);
+    return () => {
+      document.removeEventListener("dragenter", enter);
+      document.removeEventListener("dragleave", leave);
+      document.removeEventListener("dragover", over);
+      document.removeEventListener("drop", drop);
+      document.removeEventListener("dragend", end);
+    };
+  }, []);
 
   async function upload(file: File) {
     if (!ACCEPTED.includes(file.type)) {
@@ -53,13 +107,19 @@ export function CoverDropzone({
       file.size > 1024 * 1024
         ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
+    // A second drop supersedes the first — left racing, whichever upload
+    // finished last would win, regardless of which was dropped last.
+    abortRef.current?.abort();
     setState({ kind: "uploading", pct: 0, name: file.name, size });
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const { data } = await apiClient.post<{ data: { url: string } }>(
         "/books/cover",
         file,
         {
           headers: { "Content-Type": "application/octet-stream" },
+          signal: controller.signal,
           onUploadProgress: (e) => {
             const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
             setState((s) => (s.kind === "uploading" ? { ...s, pct } : s));
@@ -69,20 +129,23 @@ export function CoverDropzone({
       onChange(data.data.url);
       setState({ kind: "idle" });
     } catch (err) {
+      // A cancelled upload isn't an error — back to idle, nothing attached
+      // (design B6a states: uploading carries its own Cancel). Only the
+      // still-current upload may reset the panel; a superseded one must not
+      // clobber its replacement's progress.
+      if (controller.signal.aborted) {
+        if (abortRef.current === controller) setState({ kind: "idle" });
+        return;
+      }
       const resp = (err as { response?: { data?: { error?: string } } })
         .response;
       setState({
         kind: "error",
         message: resp?.data?.error ?? "The upload didn't go through.",
       });
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
     }
-  }
-
-  function onDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setState({ kind: "idle" });
-    const file = e.dataTransfer.files[0];
-    if (file) void upload(file);
   }
 
   // ── Attached ──────────────────────────────────────────────────────────
@@ -134,9 +197,18 @@ export function CoverDropzone({
           </div>
           <span className="text-xs text-muted-foreground">{state.pct}%</span>
         </div>
-        <p className="truncate text-[0.7rem] text-muted-foreground">
-          {state.name} · {state.size}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-[0.7rem] text-muted-foreground">
+            {state.name} · {state.size}
+          </p>
+          <button
+            type="button"
+            onClick={() => abortRef.current?.abort()}
+            className="shrink-0 text-[0.7rem] font-medium text-muted-foreground underline hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     );
   }
@@ -205,12 +277,6 @@ export function CoverDropzone({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setState({ kind: "dragging" });
-        }}
-        onDragLeave={() => setState({ kind: "idle" })}
-        onDrop={onDrop}
         className={cn(
           "hidden aspect-[2/3] w-full flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed transition-colors sm:flex",
           dragging

@@ -114,6 +114,9 @@ export default {
       animation: {
         shimmer: "shimmer 1.6s linear infinite",
         settle: "settle-in 140ms cubic-bezier(.32,.72,0,1) both",
+        // 0M pattern 3 · Acknowledging — the result fades in exactly where it
+        // belongs: opacity only (scrim-in), no travel, short/140ms settle.
+        acknowledge: "scrim-in 140ms cubic-bezier(.32,.72,0,1) both",
         arrive: "arrive-in 220ms cubic-bezier(.32,.72,0,1) both",
         sheet: "sheet-in 220ms cubic-bezier(.32,.72,0,1) both",
         scrim: "scrim-in 140ms cubic-bezier(.32,.72,0,1) both",
