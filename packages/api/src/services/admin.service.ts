@@ -1,5 +1,6 @@
 import { getPrisma } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
+import { deleteBookFileFromDisk } from "../lib/book-file-storage";
 import type { UpdateUserInput } from "../schemas/admin.schemas";
 
 const prisma = getPrisma();
@@ -74,8 +75,17 @@ export const adminService = {
       throw createError("You can't delete your own account", 400);
     }
     const target = await this.getUser(id);
-    // Books, shelves, journals, sessions all cascade with the user.
+    // Books, shelves, journals, sessions all cascade with the user — but
+    // Postgres can't unlink attached files. Capture their paths first, or
+    // every deleted account leaves its uploads on disk forever.
+    const files = await prisma.bookFile.findMany({
+      where: { userId: id },
+      select: { storagePath: true },
+    });
     await prisma.user.delete({ where: { id } });
+    for (const f of files) {
+      await deleteBookFileFromDisk(f.storagePath);
+    }
     await this.audit(
       actingAdminId,
       "user.delete",

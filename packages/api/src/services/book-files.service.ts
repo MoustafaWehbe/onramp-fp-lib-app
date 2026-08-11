@@ -40,6 +40,24 @@ export const bookFilesService = {
     await booksService.getOwned(userId, bookId);
     const stored = await saveBookFileStream(body);
 
+    try {
+      return await this.persistUpload(userId, bookId, stored, name);
+    } catch (err) {
+      // The bytes reached disk before the database said no (the book was
+      // deleted mid-upload, the row write failed) — without this unlink
+      // every such failure strands a file forever.
+      await deleteBookFileFromDisk(stored.storagePath);
+      throw err;
+    }
+  },
+
+  /** The database half of upload, separated so its failures can clean up. */
+  async persistUpload(
+    userId: string,
+    bookId: string,
+    stored: Awaited<ReturnType<typeof saveBookFileStream>>,
+    name: string,
+  ) {
     const existing = await prisma.bookFile.findUnique({
       where: { bookId_kind: { bookId, kind: stored.kind } },
       select: { storagePath: true },

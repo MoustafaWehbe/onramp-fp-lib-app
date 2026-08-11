@@ -109,13 +109,29 @@ export async function saveBookFileStream(
 
   let received = 0;
   let head = Buffer.alloc(0);
+  let sniffed: SniffedKind | null = null;
+  let headJudged = false;
 
   try {
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      // Once-only failure: rejecting alone leaves the client pumping bytes
+      // into a dead handler until the cap. Pause the request (destroying it
+      // would reset the socket before the 4xx can be delivered), stop the
+      // disk write, and let the error response's connection teardown stop
+      // the client — no further byte reaches the handler or the disk.
+      const fail = (err: unknown) => {
+        if (settled) return;
+        settled = true;
+        body.pause();
+        out.destroy();
+        reject(err);
+      };
       body.on("data", (chunk: Buffer) => {
+        if (settled) return;
         received += chunk.length;
         if (received > cap) {
-          reject(
+          fail(
             createError(
               `That file is over the ${Math.round(cap / 1024 / 1024)} MB limit.`,
               413,
@@ -126,22 +142,41 @@ export async function saveBookFileStream(
         if (head.length < SNIFF_BYTES) {
           head = Buffer.concat([head, chunk]).subarray(0, SNIFF_BYTES);
         }
+        // Judge the signature as soon as the sniff window is full — an
+        // unrecognised 200 MB file should die at 512 bytes, not after a
+        // full write to disk.
+        if (!headJudged && head.length >= SNIFF_BYTES) {
+          headJudged = true;
+          sniffed = sniffBookFile(head);
+          if (!sniffed) {
+            fail(
+              createError(
+                "That file isn't a PDF, EPUB, or audio file Folio recognises.",
+                415,
+              ),
+            );
+            return;
+          }
+        }
         if (!out.write(chunk)) {
           body.pause();
           out.once("drain", () => body.resume());
         }
       });
       body.on("end", () => {
+        if (settled) return;
+        settled = true;
         out.end(() => resolve());
       });
-      body.on("error", reject);
-      out.on("error", reject);
+      body.on("error", fail);
+      out.on("error", fail);
     });
 
     if (received === 0) {
       throw createError("No file received.", 400);
     }
-    const sniffed = sniffBookFile(head);
+    // Files smaller than the sniff window are judged here instead.
+    if (!headJudged) sniffed = sniffBookFile(head);
     if (!sniffed) {
       throw createError(
         "That file isn't a PDF, EPUB, or audio file Folio recognises.",

@@ -85,6 +85,19 @@ export const bookFilesController = {
         return;
       }
 
+      // pipe() does not propagate source errors to the response, and an
+      // unhandled stream 'error' takes the process down. A file replaced or
+      // deleted between the lookup and this read errors HERE, not above:
+      // before headers, answer 404; after, all that's left is to cut the
+      // connection so the client sees a truncated body, not a hang.
+      const serveStream = (stream: ReturnType<typeof createReadStream>) => {
+        stream.on("error", () => {
+          if (res.headersSent) res.destroy();
+          else res.status(404).json({ error: "File not found" });
+        });
+        stream.pipe(res);
+      };
+
       if (range) {
         const length = range.end - range.start + 1;
         res.status(206);
@@ -93,16 +106,18 @@ export const bookFilesController = {
           `bytes ${range.start}-${range.end}/${file.sizeBytes}`,
         );
         res.setHeader("Content-Length", length);
-        createReadStream(file.absolutePath, {
-          start: range.start,
-          end: range.end,
-        }).pipe(res);
+        serveStream(
+          createReadStream(file.absolutePath, {
+            start: range.start,
+            end: range.end,
+          }),
+        );
         return;
       }
 
       res.status(200);
       res.setHeader("Content-Length", file.sizeBytes);
-      createReadStream(file.absolutePath).pipe(res);
+      serveStream(createReadStream(file.absolutePath));
     } catch (err) {
       next(err);
     }
