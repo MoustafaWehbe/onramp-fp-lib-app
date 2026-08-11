@@ -77,12 +77,35 @@ export const adminService = {
     const target = await this.getUser(id);
     // Books, shelves, journals, sessions all cascade with the user — but
     // Postgres can't unlink attached files. Capture their paths first, or
-    // every deleted account leaves its uploads on disk forever.
-    const files = await prisma.bookFile.findMany({
-      where: { userId: id },
-      select: { storagePath: true },
-    });
-    await prisma.user.delete({ where: { id } });
+    // every deleted account leaves its uploads on disk forever. Capture and
+    // delete run in one SERIALIZABLE transaction: an upload committing a
+    // BookFile row between the two would otherwise be cascaded away without
+    // its path ever being captured — under serializable isolation one side
+    // aborts instead (the losing upload unlinks its own bytes; a losing
+    // delete is retried below).
+    let files: { storagePath: string }[] = [];
+    for (let attempt = 1; ; attempt++) {
+      try {
+        files = await prisma.$transaction(
+          async (tx) => {
+            const rows = await tx.bookFile.findMany({
+              where: { userId: id },
+              select: { storagePath: true },
+            });
+            await tx.user.delete({ where: { id } });
+            return rows;
+          },
+          { isolationLevel: "Serializable" },
+        );
+        break;
+      } catch (err) {
+        // P2034: serialization conflict — safe to retry, nothing committed.
+        if (attempt < 3 && (err as { code?: string }).code === "P2034") {
+          continue;
+        }
+        throw err;
+      }
+    }
     for (const f of files) {
       await deleteBookFileFromDisk(f.storagePath);
     }
