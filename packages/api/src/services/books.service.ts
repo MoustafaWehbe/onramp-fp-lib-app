@@ -1,6 +1,7 @@
 import { getPrisma, embeddingsQueue } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
 import { deleteBookFileFromDisk } from "../lib/book-file-storage";
+import { withSerializationRetry } from "../lib/serialization-retry";
 import type {
   CreateBookInput,
   UpdateBookInput,
@@ -167,29 +168,19 @@ export const booksService = {
     // two would be cascaded away without its path captured — under
     // serializable isolation one side aborts instead, and a losing upload
     // unlinks its own bytes in persistUpload's failure path.
-    let files: { storagePath: string }[] = [];
-    for (let attempt = 1; ; attempt++) {
-      try {
-        files = await prisma.$transaction(
-          async (tx) => {
-            const rows = await tx.bookFile.findMany({
-              where: { bookId: id },
-              select: { storagePath: true },
-            });
-            await tx.book.delete({ where: { id } });
-            return rows;
-          },
-          { isolationLevel: "Serializable" },
-        );
-        break;
-      } catch (err) {
-        // P2034: serialization conflict — safe to retry, nothing committed.
-        if (attempt < 3 && (err as { code?: string }).code === "P2034") {
-          continue;
-        }
-        throw err;
-      }
-    }
+    const files = await withSerializationRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          const rows = await tx.bookFile.findMany({
+            where: { bookId: id },
+            select: { storagePath: true },
+          });
+          await tx.book.delete({ where: { id } });
+          return rows;
+        },
+        { isolationLevel: "Serializable" },
+      ),
+    );
     for (const f of files) {
       await deleteBookFileFromDisk(f.storagePath);
     }
