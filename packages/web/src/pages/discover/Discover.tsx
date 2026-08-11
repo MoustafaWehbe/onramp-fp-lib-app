@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useDiscoveryReports,
   useGenerateReport,
@@ -51,12 +51,42 @@ export function Discover() {
 
   const createBook = useCreateBook();
 
+  const moodPanelRef = useRef<HTMLElement>(null);
+  const moodTriggerRef = useRef<HTMLButtonElement>(null);
+
   function closeMood() {
     setMoodClosing(true);
     window.setTimeout(() => {
       setMoodOpen(false);
       setMoodClosing(false);
+      // Keyboard users came in from this button; put them back on it.
+      moodTriggerRef.current?.focus();
     }, 140);
+  }
+
+  // Escape dismisses and Tab stays inside the panel — same contract as the
+  // admin dialogs (ArmDeleteDialog): the page behind is inert in every sense.
+  function onMoodKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeMood();
+      return;
+    }
+    if (e.key === "Tab" && moodPanelRef.current) {
+      const focusables = moodPanelRef.current.querySelectorAll<HTMLElement>(
+        "input, button:not([disabled])",
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   }
   // Per-recommendation UI state, keyed by rank within the visible report.
   const [itemState, setItemState] = useState<
@@ -72,7 +102,9 @@ export function Discover() {
   async function run(withMood?: string) {
     setError(null);
     setNeedsProfile(false);
-    setMoodOpen(false);
+    // The overlay leaves through its retire animation, same as Skip —
+    // snapping it away was the one exit that bypassed 0M.
+    if (moodOpen) closeMood();
     setLastMood(withMood?.trim() || undefined);
     try {
       await generate.mutateAsync(withMood?.trim() || undefined);
@@ -244,7 +276,11 @@ export function Discover() {
           >
             Mood shelf
           </Link>
-          <Button variant="outline" onClick={() => setMoodOpen((m) => !m)}>
+          <Button
+            ref={moodTriggerRef}
+            variant="outline"
+            onClick={() => setMoodOpen((m) => !m)}
+          >
             Add a mood
           </Button>
           <Button onClick={() => run(mood)} disabled={generate.isPending}>
@@ -271,11 +307,13 @@ export function Discover() {
             moodClosing ? "animate-retire" : "animate-scrim",
           )}
           onClick={closeMood}
+          onKeyDown={onMoodKeyDown}
           role="dialog"
           aria-modal="true"
           aria-label="What are you in the mood for?"
         >
           <section
+            ref={moodPanelRef}
             className={cn(
               "w-full max-w-xl space-y-4 rounded-t-[22px] bg-background p-6 shadow-2xl sm:rounded-xl sm:p-7",
               moodClosing

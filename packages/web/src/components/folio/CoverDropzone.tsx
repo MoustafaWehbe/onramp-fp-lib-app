@@ -34,6 +34,9 @@ export function CoverDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // An upload outliving the form would keep streaming to no listener.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
   // Design B6a — "The whole panel is a drop target, not just the frame."
   // The listeners live on the document and accept only real file drags, so
   // dropping anywhere on the page (form fields included) attaches the cover.
@@ -104,6 +107,9 @@ export function CoverDropzone({
       file.size > 1024 * 1024
         ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
+    // A second drop supersedes the first — left racing, whichever upload
+    // finished last would win, regardless of which was dropped last.
+    abortRef.current?.abort();
     setState({ kind: "uploading", pct: 0, name: file.name, size });
     const controller = new AbortController();
     abortRef.current = controller;
@@ -124,9 +130,11 @@ export function CoverDropzone({
       setState({ kind: "idle" });
     } catch (err) {
       // A cancelled upload isn't an error — back to idle, nothing attached
-      // (design B6a states: uploading carries its own Cancel).
+      // (design B6a states: uploading carries its own Cancel). Only the
+      // still-current upload may reset the panel; a superseded one must not
+      // clobber its replacement's progress.
       if (controller.signal.aborted) {
-        setState({ kind: "idle" });
+        if (abortRef.current === controller) setState({ kind: "idle" });
         return;
       }
       const resp = (err as { response?: { data?: { error?: string } } })

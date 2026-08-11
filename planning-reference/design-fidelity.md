@@ -10,7 +10,8 @@ reflections with ratings) — not the degenerate demo data.
 
 **Evidence limits.** Ollama was unreachable throughout, so AI _loaded_ states
 (B8a chip content, D15 report body, G20 narrative text) were verified from
-code + canvas, not exercised live; their loading/failed/degraded branches were.
+code + canvas, not exercised live; their loading/failed/degraded branches were
+exercised live (Ollama down is exactly what those branches render).
 Screenshots were unavailable (browser pane not compositing); layout claims come
 from the accessibility tree and computed geometry, which is stronger evidence
 for the one rendering bug below anyway.
@@ -20,6 +21,10 @@ but wrong) · **copy** · **motion** (vs 0M). Est: XS <½h · S ½–2h · M hal
 · L day+.
 
 ## Findings
+
+Rows record the **pre-remediation** state, as audited — "what the code does"
+describes the code before any fix landed. Each row's outcome is in the
+Remediation record at the end of this file.
 
 | #   | frame      | what the canvas specifies                                                                                                                                                                                                                         | what the code does                                                                                                                                                                                                                                                                                                                                                                                                               | severity   | est. |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---- |
@@ -63,9 +68,10 @@ anywhere in the canvas (B6a's form has none). The heading is the design's own
 editorial label for the genre breakdown; the code renders exactly that. No
 change needed — any renaming would be a design decision, not a fidelity fix.
 
-**Velocity bar.** It never renders — finding #1. The CSS percentage-height bug
-zeroes every bar for every account; the demo's single-month data merely made it
-look like a data problem.
+**Velocity bar.** As audited, it never rendered — finding #1 (since fixed; see
+the Remediation record). The CSS percentage-height bug zeroed every bar for
+every account; the demo's single-month data merely made it look like a data
+problem.
 
 ## What is faithful (verified, no row needed)
 
