@@ -8,6 +8,7 @@ import {
 } from "../../hooks/useBooks";
 import { useAddBookToAnyShelf, useBookShelves } from "../../hooks/useShelves";
 import { BookCover } from "../../components/folio/BookCover";
+import { BookFileSection } from "../../components/folio/BookFileSection";
 import { EmptyState } from "../../components/folio/EmptyState";
 import { ShareBookDialog } from "../../components/folio/ShareBookDialog";
 import { SimilarBooks } from "../../components/folio/SimilarBooks";
@@ -211,6 +212,8 @@ export function BookDetail() {
               )}
             </div>
           </section>
+
+          <BookFileSection book={book} />
 
           <section className="space-y-3 rounded-[var(--radius)] border border-border bg-card p-5">
             <h2 className="font-display text-lg text-foreground">

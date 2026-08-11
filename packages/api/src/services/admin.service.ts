@@ -1,5 +1,7 @@
 import { getPrisma } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
+import { deleteBookFileFromDisk } from "../lib/book-file-storage";
+import { withSerializationRetry } from "../lib/serialization-retry";
 import type { UpdateUserInput } from "../schemas/admin.schemas";
 
 const prisma = getPrisma();
@@ -74,8 +76,30 @@ export const adminService = {
       throw createError("You can't delete your own account", 400);
     }
     const target = await this.getUser(id);
-    // Books, shelves, journals, sessions all cascade with the user.
-    await prisma.user.delete({ where: { id } });
+    // Books, shelves, journals, sessions all cascade with the user — but
+    // Postgres can't unlink attached files. Capture their paths first, or
+    // every deleted account leaves its uploads on disk forever. Capture and
+    // delete run in one SERIALIZABLE transaction: an upload committing a
+    // BookFile row between the two would otherwise be cascaded away without
+    // its path ever being captured — under serializable isolation one side
+    // aborts instead (the losing upload unlinks its own bytes; a losing
+    // delete is retried).
+    const files = await withSerializationRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          const rows = await tx.bookFile.findMany({
+            where: { userId: id },
+            select: { storagePath: true },
+          });
+          await tx.user.delete({ where: { id } });
+          return rows;
+        },
+        { isolationLevel: "Serializable" },
+      ),
+    );
+    for (const f of files) {
+      await deleteBookFileFromDisk(f.storagePath);
+    }
     await this.audit(
       actingAdminId,
       "user.delete",

@@ -17,9 +17,25 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
-/** Shelf membership rows joined to their book + who put it there. */
+/** Shelf membership rows joined to their book + who put it there.
+ *  Owner-facing only — the contributor projection lives in the contributors
+ *  service and stays metadata-only (no files). */
 const membership = {
-  include: { book: true, addedBy: { select: { id: true, name: true } } },
+  include: {
+    book: {
+      include: {
+        files: {
+          select: {
+            kind: true,
+            sizeBytes: true,
+            mimeType: true,
+            originalName: true,
+          },
+        },
+      },
+    },
+    addedBy: { select: { id: true, name: true } },
+  },
   orderBy: { addedAt: "desc" },
 } as const;
 

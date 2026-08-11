@@ -45,8 +45,9 @@ enum ReadingStatus {
   ABANDONED
 }
 
-/// Design B6a: "Just a label, for your own filtering. Folio doesn't store or
-/// open book files." — a field, never a reader or file manager.
+/// Design B6a: a filtering label, chosen by the reader — never inferred. The
+/// label and any attached file (BookFile) are deliberately decoupled: a
+/// physical book with a PDF scan is coherent.
 enum BookFormat {
   PHYSICAL
   EBOOK
@@ -62,6 +63,14 @@ enum ShareStatus {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+/// What an attached file IS, decided by its magic bytes at upload — never by
+/// the client's claim and never by Book.format, which stays a filtering label.
+enum BookFileKind {
+  PDF
+  EPUB
+  AUDIO
 }
 
 // ─── Auth (mirrors existing tables) ───────────────────────────────────────────
@@ -89,6 +98,8 @@ model User {
   sentBookShares     BookShare[] @relation("sentBookShares")
   receivedBookShares BookShare[] @relation("receivedBookShares")
   passwordResetTokens PasswordResetToken[]
+  bookFiles          BookFile[]
+  readingProgress    ReadingProgress[]
 
   @@map("users")
 }
@@ -165,6 +176,8 @@ model Book {
   embedding    BookEmbedding?
   shelves      BookOnShelf[]
   shares       BookShare[]
+  files        BookFile[]
+  progress     ReadingProgress[]
 
   // Dedup: primary match on openLibraryId (books added from Open Library),
   // fallback to (title, author) for manually-entered books. Postgres allows
@@ -357,4 +370,48 @@ model RecommendationItem {
 
   @@index([reportId])
   @@map("recommendation_items")
+}
+
+/// An attached file for a book — one per kind, so a book can hold a PDF scan
+/// AND an audiobook, but never two PDFs. The file is deliberately NOT the
+/// format: `Book.format` stays a filtering label (a physical book with a PDF
+/// scan is coherent), and the file's own kind decides which viewer opens.
+/// Rows cascade with the book; the bytes on disk are removed by the service
+/// (Postgres can't unlink files — see booksService.remove).
+model BookFile {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId       String       @map("book_id") @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  kind         BookFileKind
+  storagePath  String       @map("storage_path")
+  sizeBytes    Int          @map("size_bytes")
+  mimeType     String       @map("mime_type")
+  originalName String       @map("original_name")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, kind])
+  @@index([userId])
+  @@map("book_files")
+}
+
+/// Where the reader stopped. `position` is medium-specific — a CFI for EPUB,
+/// a page number for PDF, seconds for audio — and `percent` is the uniform
+/// progress signal. Private to its owner: no share or contributor path may
+/// select from this table.
+model ReadingProgress {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId    String   @map("book_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  position  String
+  percent   Float    @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, userId])
+  @@map("reading_progress")
 }

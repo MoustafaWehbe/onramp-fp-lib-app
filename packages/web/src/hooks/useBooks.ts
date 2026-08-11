@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
 import type {
   Book,
+  BookFileKind,
+  BookFileMeta,
   BookFormat,
   JournalEntry,
+  ReadingProgress,
   ReadingStatus,
 } from "../lib/types";
 
@@ -203,6 +206,82 @@ export function useSaveJournal(bookId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["journal", bookId] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
+    },
+  });
+}
+
+// ── Attached files & reading progress ───────────────────────────────────────
+
+/** Where an attached file streams from (the API honours Range here). */
+export function bookFileUrl(bookId: string, kind: BookFileKind): string {
+  return `/api/books/${bookId}/file/${kind.toLowerCase()}`;
+}
+
+/** The saved reading position for a book; null when never opened. */
+export function useReadingProgress(bookId: string | undefined) {
+  return useQuery({
+    queryKey: ["reading-progress", bookId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ data: ReadingProgress | null }>(
+        `/books/${bookId}/progress`,
+      );
+      return data.data;
+    },
+    enabled: Boolean(bookId),
+    // The reader owns the live position while open; don't refetch under it.
+    staleTime: Infinity,
+  });
+}
+
+export function useSaveProgress(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { position: string; percent: number }) => {
+      const { data } = await apiClient.put<{ data: ReadingProgress }>(
+        `/books/${bookId}/progress`,
+        input,
+      );
+      return data.data;
+    },
+    onSuccess: (progress) => {
+      queryClient.setQueryData(["reading-progress", bookId], progress);
+    },
+  });
+}
+
+/** Raw-stream upload; the sniffed metadata comes back. */
+export function useUploadBookFile(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const { data } = await apiClient.post<{ data: BookFileMeta }>(
+        `/books/${bookId}/file`,
+        file,
+        {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "X-File-Name": encodeURIComponent(file.name),
+          },
+        },
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useDeleteBookFile(bookId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (kind: BookFileKind) => {
+      await apiClient.delete(`/books/${bookId}/file/${kind.toLowerCase()}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      void queryClient.invalidateQueries({ queryKey: ["books"] });
     },
   });
 }

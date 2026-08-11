@@ -1,5 +1,7 @@
 import request from "supertest";
 import type { Response } from "supertest";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { app } from "../../app";
 import { getPrisma } from "@starter-kit/shared";
 
@@ -348,5 +350,49 @@ describe("Shelf sharing + contributors (integration, real database)", () => {
       .set("Cookie", carolCookie)
       .send({ bookId: carolBook.body.data.id });
     expect(res.status).toBe(404); // ACCEPTED but VIEW-only, not WRITE
+  });
+
+  it("a contributor cannot fetch a shared-shelf book's attached file or progress (404)", async () => {
+    // Bob holds ACCEPTED access to the shelf that carries Alice's book. The
+    // file surface follows the journal's boundary exactly: shelf access is
+    // catalogue access, and the bytes are the owner's alone. A real file
+    // must EXIST for this to pin access denial — against an empty book the
+    // 404 would only prove absence, and the owner's 200 proves the
+    // difference.
+    const storagePath = "contributor-boundary-fixture.pdf";
+    const filesDir = path.join(process.cwd(), "uploads", "book-files");
+    await fs.mkdir(filesDir, { recursive: true });
+    await fs.writeFile(
+      path.join(filesDir, storagePath),
+      "%PDF-1.4\n% boundary fixture\n",
+    );
+    await prisma.bookFile.create({
+      data: {
+        bookId,
+        userId: aliceId,
+        kind: "PDF",
+        storagePath,
+        sizeBytes: 27,
+        mimeType: "application/pdf",
+        originalName: "dune-scan.pdf",
+      },
+    });
+    try {
+      const contributor = await request(app)
+        .get(`/api/books/${bookId}/file/pdf`)
+        .set("Cookie", bobCookie);
+      expect(contributor.status).toBe(404);
+      const owner = await request(app)
+        .get(`/api/books/${bookId}/file/pdf`)
+        .set("Cookie", aliceCookie);
+      expect(owner.status).toBe(200);
+    } finally {
+      await prisma.bookFile.deleteMany({ where: { bookId } });
+      await fs.unlink(path.join(filesDir, storagePath)).catch(() => undefined);
+    }
+    const progress = await request(app)
+      .get(`/api/books/${bookId}/progress`)
+      .set("Cookie", bobCookie);
+    expect(progress.status).toBe(404);
   });
 });

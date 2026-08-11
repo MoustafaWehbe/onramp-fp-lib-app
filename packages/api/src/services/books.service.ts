@@ -1,5 +1,7 @@
 import { getPrisma, embeddingsQueue } from "@starter-kit/shared";
 import { createError } from "../middleware/error-handler";
+import { deleteBookFileFromDisk } from "../lib/book-file-storage";
+import { withSerializationRetry } from "../lib/serialization-retry";
 import type {
   CreateBookInput,
   UpdateBookInput,
@@ -8,6 +10,21 @@ import type {
 } from "../schemas/books.schemas";
 
 const prisma = getPrisma();
+
+/**
+ * Owner-facing file metadata. Never the storage path — that's a server
+ * detail — and never selected by any share/contributor projection.
+ */
+const FILES_INCLUDE = {
+  files: {
+    select: {
+      kind: true,
+      sizeBytes: true,
+      mimeType: true,
+      originalName: true,
+    },
+  },
+} as const;
 
 /**
  * Queue a re-embed of a finished, journaled book (the worker re-checks both
@@ -79,6 +96,7 @@ export const booksService = {
           : {}),
       },
       orderBy: orderByFor(q.sort),
+      include: FILES_INCLUDE,
     });
   },
 
@@ -96,6 +114,18 @@ export const booksService = {
   /** Fetch a book the user owns, or throw 404 (never leak another user's book). */
   async getOwned(userId: string, id: string) {
     const book = await prisma.book.findUnique({ where: { id } });
+    if (!book || book.userId !== userId) {
+      throw createError("Book not found", 404);
+    }
+    return book;
+  },
+
+  /** getOwned plus attached-file metadata, for the detail response. */
+  async getOwnedWithFiles(userId: string, id: string) {
+    const book = await prisma.book.findUnique({
+      where: { id },
+      include: FILES_INCLUDE,
+    });
     if (!book || book.userId !== userId) {
       throw createError("Book not found", 404);
     }
@@ -132,7 +162,28 @@ export const booksService = {
 
   async remove(userId: string, id: string) {
     await this.getOwned(userId, id);
-    await prisma.book.delete({ where: { id } });
+    // Postgres cascades the rows; the bytes on disk are ours to clean up.
+    // Capture and delete share one SERIALIZABLE transaction (same contract
+    // as admin deleteUser): an upload committing a BookFile row between the
+    // two would be cascaded away without its path captured — under
+    // serializable isolation one side aborts instead, and a losing upload
+    // unlinks its own bytes in persistUpload's failure path.
+    const files = await withSerializationRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          const rows = await tx.bookFile.findMany({
+            where: { bookId: id },
+            select: { storagePath: true },
+          });
+          await tx.book.delete({ where: { id } });
+          return rows;
+        },
+        { isolationLevel: "Serializable" },
+      ),
+    );
+    for (const f of files) {
+      await deleteBookFileFromDisk(f.storagePath);
+    }
   },
 
   async getJournal(userId: string, bookId: string) {

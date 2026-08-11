@@ -1,8 +1,11 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { Shimmer } from "../components/folio/Shimmer";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { SharedLayout } from "../layouts/SharedLayout";
+import { ReaderLayout } from "../layouts/ReaderLayout";
 import { useAuth } from "../hooks/useAuth";
 import { Welcome } from "../pages/Welcome";
 import { Login } from "../pages/auth/Login";
@@ -14,6 +17,10 @@ import { Library } from "../pages/library/Library";
 import { AddBook } from "../pages/library/AddBook";
 import { BookDetail } from "../pages/library/BookDetail";
 import { Journal } from "../pages/library/Journal";
+// Lazy: the reader carries pdf.js, which has no business in the main bundle.
+const Reader = lazy(() =>
+  import("../pages/library/Reader").then((m) => ({ default: m.Reader })),
+);
 import { Shelves } from "../pages/shelves/Shelves";
 import { ShelfDetail } from "../pages/shelves/ShelfDetail";
 import { Memory } from "../pages/memory/Memory";
@@ -85,6 +92,19 @@ export function AppRoutes() {
           <Route path="/memory/year" element={<YearInReading />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        {/* The reader escapes the app shell entirely (B8's rule: a book and
+            one quiet bar) — same route-level layout mechanism as /shared. */}
+        <Route element={<ReaderLayout />}>
+          <Route
+            path="/books/:id/read"
+            element={
+              <Suspense fallback={<Shimmer className="m-8 h-[70vh]" />}>
+                <Reader />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* Shared shelves get the reduced "contributor view" chrome — the
