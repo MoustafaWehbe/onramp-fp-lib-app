@@ -104,6 +104,9 @@ export function EpubReader({
   const renditionRef = useRef<Rendition | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Single-spine books render as one continuous scroll; the paging
+  // controls hide rather than sit there inert.
+  const [scrolledDoc, setScrolledDoc] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prefs, setPrefs] = useState(() => loadPrefs(user?.id));
   const saveProgress = useSaveProgress(bookId);
@@ -129,11 +132,24 @@ export function EpubReader({
       if (cancelled) return;
 
       book = ePub(data);
+      await book.ready;
+      if (cancelled) return;
+
+      // Flow branches on the spine: a single-file EPUB has no chapter
+      // boundaries to page across, so continuous scroll is the honest
+      // presentation — and it stays clear of the paginated manager's
+      // resume-state trouble (see the note at the resume below).
+      const spineCount = (book.spine as unknown as { items: unknown[] }).items
+        .length;
+      const singleSpine = spineCount <= 1;
+      setScrolledDoc(singleSpine);
+
       const rendition = book.renderTo(host, {
         width: "100%",
         height: "100%",
-        // Paginated like a book, not a scroll — the journal-page feel.
-        flow: "paginated",
+        // Paginated like a book, not a scroll — the journal-page feel —
+        // except for single-file books, which scroll (see above).
+        flow: singleSpine ? "scrolled-doc" : "paginated",
         spread: "none",
       });
       renditionRef.current = rendition;
@@ -146,8 +162,6 @@ export function EpubReader({
       );
       rendition.themes.default(themeRules(loadPrefs(user?.id)));
 
-      await book.ready;
-      if (cancelled) return;
       const locations = book.locations;
       void locations.generate(600).then(() => {
         // Locations make percent meaningful; refresh the bar once they exist.
@@ -161,21 +175,24 @@ export function EpubReader({
 
       // Touch paging: a tap on the outer thirds turns the page — the 375px
       // affordance; the middle third stays free for links and selection.
-      // Listeners go straight onto each chapter document (epub.js's own
-      // click relay proved unreliable). Geometry note: the iframe spans the
-      // whole column strip and the container scrolls it, so clientX arrives
-      // in strip coordinates — subtract the scroll offset for the on-screen
-      // position.
-      rendition.hooks.content.register((contents: { document: Document }) => {
-        contents.document.addEventListener("click", (event: MouseEvent) => {
-          if ((event.target as HTMLElement).closest("a")) return;
-          const container = host.querySelector(".epub-container");
-          const onScreenX = event.clientX - (container?.scrollLeft ?? 0);
-          const w = host.clientWidth;
-          if (onScreenX < w / 3) void rendition.prev();
-          else if (onScreenX > (2 * w) / 3) void rendition.next();
+      // Only for paginated books: in a scrolled document the scroll IS the
+      // gesture. Listeners go straight onto each chapter document (epub.js's
+      // own click relay proved unreliable). Geometry note: the iframe spans
+      // the whole column strip and the container scrolls it, so clientX
+      // arrives in strip coordinates — subtract the scroll offset for the
+      // on-screen position.
+      if (!singleSpine) {
+        rendition.hooks.content.register((contents: { document: Document }) => {
+          contents.document.addEventListener("click", (event: MouseEvent) => {
+            if ((event.target as HTMLElement).closest("a")) return;
+            const container = host.querySelector(".epub-container");
+            const onScreenX = event.clientX - (container?.scrollLeft ?? 0);
+            const w = host.clientWidth;
+            if (onScreenX < w / 3) void rendition.prev();
+            else if (onScreenX > (2 * w) / 3) void rendition.next();
+          });
         });
-      });
+      }
 
       rendition.on(
         "relocated",
@@ -229,11 +246,42 @@ export function EpubReader({
       if (initialPosition) {
         await attempt(initialPosition);
         if (cancelled) return;
-        // Known upstream limit (epub.js 0.3.93): in an EPUB whose whole text
-        // is ONE spine item (some Gutenberg builds), a completed
-        // display-to-CFI leaves prev/next dead — the manager believes the
-        // section is exhausted and finds no next section. Standard
-        // multi-chapter EPUBs resume and page correctly (verified).
+        // Why the flow branches on spine count (see renderTo above), and a
+        // corrected diagnosis: an earlier note here blamed "single spine
+        // item" books for dead paging after resume. That was wrong — the
+        // reproduced trigger is a resume CFI that lands on a DEGENERATE
+        // spine item (Gutenberg's 431-byte wrap0000.html): after that
+        // display-to-CFI, the paginated manager's prev/next silently no-op
+        // (epub.js 0.3.93; same file resumes fine to a real chapter). The
+        // wrapper CFI gets saved naturally on a book's very first open, so
+        // the wedge recurs on that build. Upstream, documented, not fixed
+        // here. Genuinely single-file EPUBs take the scrolled-doc branch
+        // where none of this machinery applies.
+      }
+
+      // In scrolled-doc flow, scrolling does NOT fire relocated on its own —
+      // without this, the only CFI ever saved is the document start and
+      // resume goes nowhere. A debounced scroll listener asks the rendition
+      // to report its location, which fires relocated and flows into the
+      // existing save path.
+      if (singleSpine) {
+        const container = host.querySelector(".epub-container");
+        if (container) {
+          let scrollTimer: number | undefined;
+          const onScroll = () => {
+            window.clearTimeout(scrollTimer);
+            scrollTimer = window.setTimeout(() => {
+              (
+                rendition as unknown as { reportLocation?: () => void }
+              ).reportLocation?.();
+            }, 600);
+          };
+          container.addEventListener("scroll", onScroll, { passive: true });
+          cleanupResize = () => {
+            container.removeEventListener("scroll", onScroll);
+            window.clearTimeout(scrollTimer);
+          };
+        }
       }
 
       // 0.3.x quirk: percentage sizing columnizes the content but can leave
@@ -252,7 +300,12 @@ export function EpubReader({
         }
       });
       observer.observe(host);
-      cleanupResize = () => observer.disconnect();
+      // Chained: the scroll listener above may already own part of cleanup.
+      const priorCleanup = cleanupResize;
+      cleanupResize = () => {
+        observer.disconnect();
+        priorCleanup?.();
+      };
 
       setReady(true);
     })().catch(() => {
@@ -337,26 +390,34 @@ export function EpubReader({
     <div className="flex h-full min-h-0 flex-col">
       {/* Secondary controls: paging, and the type settings. */}
       <div className="relative flex items-center justify-between border-b border-border/60 px-4 py-1.5 sm:px-8 lg:px-12">
-        <div className="flex items-center gap-0.5">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => turn("prev")}
-            disabled={!ready}
-            aria-label="Previous page"
-          >
-            ←
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => turn("next")}
-            disabled={!ready}
-            aria-label="Next page"
-          >
-            →
-          </Button>
-        </div>
+        {/* A scrolled document has nothing to page — the controls hide
+            rather than sit there inert. */}
+        {scrolledDoc ? (
+          <span className="text-xs text-muted-foreground">
+            Scrolls as one page
+          </span>
+        ) : (
+          <div className="flex items-center gap-0.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => turn("prev")}
+              disabled={!ready}
+              aria-label="Previous page"
+            >
+              ←
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => turn("next")}
+              disabled={!ready}
+              aria-label="Next page"
+            >
+              →
+            </Button>
+          </div>
+        )}
         <button
           onClick={() => setSettingsOpen((o) => !o)}
           aria-expanded={settingsOpen}
